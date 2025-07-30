@@ -5,24 +5,20 @@ async function main() {
 
   console.log("Desplegando contrato con la cuenta:", deployer.address);
 
-  const balance = await deployer.getBalance();
-  console.log(
-    "Balance del deployer:",
-    hre.ethers.utils.formatEther(balance),
-    "ETH"
-  );
+  const balance = await hre.ethers.provider.getBalance(deployer.address);
+  console.log("Balance del deployer (wei):", balance.toString());
 
   const Marketplace = await hre.ethers.getContractFactory("NFTMarketplace");
   const marketplace = await Marketplace.deploy();
 
-  await marketplace.deployed();
+  await marketplace.waitForDeployment();
 
-  console.log("Marketplace desplegado en:", marketplace.address);
+  console.log("Marketplace desplegado en:", await marketplace.getAddress());
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("Error al desplegar:", error);
     process.exit(1);
   });
