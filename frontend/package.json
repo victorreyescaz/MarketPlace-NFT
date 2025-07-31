@@ -10,9 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reown/appkit": "^1.7.17",
+    "@reown/appkit-adapter-ethers": "^1.7.17",
     "ethers": "^6.15.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "viem": "^2.33.2",
+    "wagmi": "^2.16.0",
     "web3modal": "^1.9.12"
   },
   "devDependencies": {
