@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol"; // Permite asociar un URI a cada token
-import "@openzeppelin/contracts/utils/Counters.sol"; // Para incrementar IDs de NFTs
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol"; // Version del ERC721 que permite guardar y recuperar tokenURI individual por cada NFT
+import "@openzeppelin/contracts/utils/Counters.sol"; // Para autoincrementar IDs de los NFTs
 
 contract NFTMarketplace is ERC721URIStorage {
-    using Counters for Counters.Counter;
+    using Counters for Counters.Counter; // Libreria sobre _tokenIds, permite usar .increment(), .current()
     Counters.Counter private _tokenIds;
 
     struct MarketItem {
@@ -24,6 +24,7 @@ contract NFTMarketplace is ERC721URIStorage {
         marketplaceOwner = payable(msg.sender);
     }
 
+    // Funcion para mintear un NFT en el marketplace
     function mintNFT(
         string memory tokenURI,
         uint256 price
@@ -32,12 +33,12 @@ contract NFTMarketplace is ERC721URIStorage {
         require(price > 0, "Precio debe ser mayor que 0");
 
         _tokenIds.increment();
-        uint256 newItemId = _tokenIds.current();
+        uint256 newItemId = _tokenIds.current(); // Obtiene el nuevo ID del nft incrementado con .increment()
 
         _mint(msg.sender, newItemId);
         _setTokenURI(newItemId, tokenURI);
 
-        items[newItemId] = MarketItem(
+        items[newItemId] = MarketItem( // Creamos una entrada del NFT en el marketplace. Marca como listado
             newItemId,
             payable(msg.sender),
             price,
@@ -47,6 +48,7 @@ contract NFTMarketplace is ERC721URIStorage {
         return newItemId;
     }
 
+    // Funcion para comprar un NFT
     function buyNFT(uint256 tokenId) public payable {
         MarketItem storage item = items[tokenId];
         require(item.isListed, "NFT no esta en venta");
@@ -59,11 +61,13 @@ contract NFTMarketplace is ERC721URIStorage {
 
         _transfer(seller, msg.sender, tokenId);
 
-        seller.transfer(msg.value);
-        marketplaceOwner.transfer(listingFee); // Comision
+        seller.transfer(msg.value); // Enviamos el pago al vendedor mas la comision
+        marketplaceOwner.transfer(listingFee);
     }
 
+    // Funcion que devuelve el listado de NFTs actual
     function getAllListedItems() public view returns (MarketItem[] memory) {
+        // Contamos los NFTs
         uint256 total = _tokenIds.current();
         uint256 count = 0;
 
@@ -71,6 +75,7 @@ contract NFTMarketplace is ERC721URIStorage {
             if (items[i].isListed) count++;
         }
 
+        // Creamos un array con el struct MarketItem
         MarketItem[] memory result = new MarketItem[](count);
         uint256 index = 0;
 
