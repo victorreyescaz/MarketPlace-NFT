@@ -1,4 +1,5 @@
 import MarketplaceGallery from "./components/MarketPlaceGallery";
+import MintNFTForm from "./components/MintNFTForm";
 
 function App() {
   return (
@@ -8,7 +9,9 @@ function App() {
       <appkit-button />
     </header>
 
-    <main>
+    <main className="p-4">
+      <MintNFTForm/>
+      <hr className="my-6" />
       <MarketplaceGallery/>
     </main>
   </>

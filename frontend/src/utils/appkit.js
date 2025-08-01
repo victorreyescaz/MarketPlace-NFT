@@ -1,4 +1,4 @@
-import { AppKit, createAppKit } from "@reown/appkit/react";
+import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
 import { sepolia } from "@reown/appkit/networks";
 
