@@ -1,74 +1,90 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import appKit from "../utils/appkit";
+import { useAppKit } from "@reown/appkit/react";
 
 const MintNFTForm = () => {
+  const appKit = useAppKit();
+
+console.log("AppKit:", appKit);
+console.log("isReady:", typeof appKit.isReady === "function" ? appKit.isReady() : "No disponible");
+console.log("Contracts:", appKit.contracts);
+
+
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    
+    const checkReady = async () => {
+      if (appKit && typeof appKit.isReady === "function") {
+        const isReady = await appKit.isReady();
+        setReady(isReady);
+      }
+    };
+    checkReady();
+  }, [appKit]);
 
   const handleMint = async (e) => {
-    
     e.preventDefault();
+
+    if (!ready) {
+      alert("AppKit aún no está listo. Espera unos segundos y vuelve a intentarlo.");
+      return;
+    }
+
     setLoading(true);
-
-    // Esperar a que appKit.getContract esté disponible (máximo 3 segundos)
-    let retries = 6;
-    while (retries > 0) {
-        if (typeof appKit.getContract === "function") break;
-        await new Promise((res) => setTimeout(res, 500));
-        retries--;
-    }
-
-    if (!appKit || typeof appKit.getContract !== "function") {
-        alert("AppKit aún no está listo. Espera unos segundos y vuelve a intentarlo.");
-        return;
-    }
 
     try {
       // Subir imagen a IPFS (Pinata)
       const formData = new FormData();
       formData.append("file", image);
 
-      const resImg = await axios.post("https://api.pinata.cloud/pinning/pinFileToIPFS", formData, {
-        maxContentLength: "Infinity",
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${import.meta.env.VITE_PINATA_JWT}`,
-        },
-      });
+      const resImg = await axios.post(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        formData,
+        {
+          maxContentLength: "Infinity",
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${import.meta.env.VITE_PINATA_JWT}`,
+          },
+        }
+      );
 
       const imageHash = resImg.data.IpfsHash;
       const imageUrl = `https://gateway.pinata.cloud/ipfs/${imageHash}`;
 
       // Crear metadatos
-      const metadata = {
-        name,
-        image: imageUrl,
-      };
+      const metadata = { name, image: imageUrl };
 
-      const resMeta = await axios.post("https://api.pinata.cloud/pinning/pinJSONToIPFS", metadata, {
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_PINATA_JWT}`,
-        },
-      });
+      const resMeta = await axios.post(
+        "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+        metadata,
+        {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_PINATA_JWT}`,
+          },
+        }
+      );
 
       const tokenURI = `https://gateway.pinata.cloud/ipfs/${resMeta.data.IpfsHash}`;
 
       // Llamar al contrato
       const contract = await appKit.getContract("NFTMarketplace");
-      const parsedPrice = BigInt(Number(price) * 1e18); // ETH to wei
+      const parsedPrice = BigInt(Number(price) * 1e18);
 
       const tx = await contract.write.createToken([tokenURI, parsedPrice], {
-        value: BigInt(1e16), // listing fee = 0.01 ETH
+        value: BigInt(1e16),
       });
 
       await tx.wait();
       alert("NFT minteado y listado con éxito!");
     } catch (error) {
-      console.error(" Error al mintear NFT:", error);
-      alert("Hubo un error, revisa consola.");
+      console.error("Error al mintear NFT:", error);
+      alert("Hubo un error al mintear. Revisa consola.");
     } finally {
       setLoading(false);
     }
@@ -106,7 +122,7 @@ const MintNFTForm = () => {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !ready}
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
       >
         {loading ? "Minteando..." : "Mintear NFT"}
