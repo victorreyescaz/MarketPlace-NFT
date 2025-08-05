@@ -12,12 +12,12 @@ const networks = [sepolia, mainnet];
 const metadata = {
   name: "NFT MarketPlace",
   description: "NFT Marketplace",
-  url: "http://127.0.0.1:5173", // origin must match your domain & subdomain
+  url: window.location.origin, // Para poder ejecutar en local y en Vercel sin tener problemas con la url
   icons: ["https://avatars.mywebsite.com/"],
 };
 
 // 4. Create a AppKit instance
-const appkit = createAppKit({
+const appKit = createAppKit({
   adapters: [new EthersAdapter()],
   networks,
   metadata,
@@ -27,4 +27,4 @@ const appkit = createAppKit({
   },
 });
 
-export default appkit;
+export default appKit;
