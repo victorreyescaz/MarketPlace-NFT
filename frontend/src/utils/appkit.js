@@ -1,26 +1,30 @@
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
-import { sepolia } from "@reown/appkit/networks";
+import { mainnet, sepolia } from "@reown/appkit/networks";
 
-const appKit = createAppKit({
+// 1. Get projectId
+const projectId = "572cd4e95b82ee7e2cdd5190c46e3db0";
+
+// 2. Set the networks
+const networks = [sepolia, mainnet];
+
+// 3. Create a metadata object - optional
+const metadata = {
+  name: "NFT MarketPlace",
+  description: "NFT Marketplace",
+  url: "http://127.0.0.1:5173", // origin must match your domain & subdomain
+  icons: ["https://avatars.mywebsite.com/"],
+};
+
+// 4. Create a AppKit instance
+const appkit = createAppKit({
   adapters: [new EthersAdapter()],
-  networks: [sepolia],
-  projectId: import.meta.env.VITE_REOWN_PROJECT_ID,
-  metadata: {
-    name: "NFT Marketplace",
-    description: "Marketplace de NFTs",
-    url: "http://127.0.0.1:5173/",
-  },
-  optionalNamespaces: {
-    eip155: {
-      chains: ["eip155:11155111"],
-      methods: ["eth_sendTransaction", "personal_sign", "eth_signTypedData"],
-      events: ["accountsChanged", "chainChanged"],
-      rpcMap: {
-        "eip155:11155111": import.meta.env.VITE_SEPOLIA_RPC_URL,
-      },
-    },
+  networks,
+  metadata,
+  projectId,
+  features: {
+    analytics: true, // Optional - defaults to your Cloud configuration
   },
 });
 
-export default appKit;
+export default appkit;
