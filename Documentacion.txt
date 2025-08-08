@@ -1,0 +1,17 @@
+Ejecutar proyecto con VITE npm create vite@latest
+
+En el package.json eliminar la linea type:module
+
+Hardhat = En vez de .deployed() en deploy.js waitForDeployment()
+
+
+Limpieza completa de node_modules y reinstalar dependencias
+rm -rf node_modules
+rm package-lock.json
+rm -rf .vite
+npm install
+
+
+chakra: npm install @chakra-ui/react @emotion/react @emotion/styled framer-motion
+
+
