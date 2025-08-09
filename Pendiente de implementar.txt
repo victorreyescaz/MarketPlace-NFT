@@ -1,0 +1,21 @@
+Pendiente de implementar más adelante:
+
+Funcionalidad:
+
+Añadir verificación y cambio automático de red a Sepolia antes de ejecutar transacciones o lecturas.
+
+Usar wallet_switchEthereumChain y, si la red no está añadida, wallet_addEthereumChain.
+
+Guardar estado isSepolia para deshabilitar botones y mostrar advertencias.
+
+Código listo:
+
+La utilidad ensureSepolia(walletProvider) que ya te pasé.
+
+Incluir la llamada en handleMint y loadMyNFTs.
+
+Opcional: deshabilitar botones si no es Sepolia.
+
+Objetivo:
+
+Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en otra red.

@@ -2,10 +2,14 @@ Ejecutar proyecto con VITE npm create vite@latest
 
 En el package.json eliminar la linea type:module
 
-Hardhat = En vez de .deployed() en deploy.js waitForDeployment()
+Hardhat = En vez de .deployed() en deploy.js .waitForDeployment()
+
+Para desplegar el contrato con hardhat en sepolia:
+npx hardhat compile
+npx hardhat run scripts/deploy.js --network sepolia
 
 
-Limpieza completa de node_modules y reinstalar dependencias
+Limpieza completa de node_modules y reinstalar dependencias. Para cuando hacemos muchos cambios, a veces va bien
 rm -rf node_modules
 rm package-lock.json
 rm -rf .vite
@@ -14,4 +18,6 @@ npm install
 
 chakra: npm install @chakra-ui/react @emotion/react @emotion/styled framer-motion
 
+Utilizamos pinata, importante introducir en .env el JWT(secret access token)
 
+IMPORTANTE: Si hacemos algun cambio en NFT.sol para implementar nuevas funciones tenemos que actualiza el abi, un vez compilado y desplegado en Sepolia con Hardhat el abi cambia.
