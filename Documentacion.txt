@@ -16,8 +16,17 @@ rm -rf .vite
 npm install
 
 
-chakra: npm install @chakra-ui/react @emotion/react @emotion/styled framer-motion
+chakra: npm install @chakra-ui/react @emotion/react @emotion/styled framer-motion 
+npm install @chakra-ui/react@latest
 
 Utilizamos pinata, importante introducir en .env el JWT(secret access token)
 
 IMPORTANTE: Si hacemos algun cambio en NFT.sol para implementar nuevas funciones tenemos que actualiza el abi, un vez compilado y desplegado en Sepolia con Hardhat el abi cambia.
+
+Creamos el contrato Marketplace.sol con la logica del marketplace, para poder comprar, vender, cambiar precio, recoger ganancias...
+
+Lo desplegamos con en sepolia con deployMarketplace.js
+
+Actualizamos el contract.js con la direccion del contrato Marketplace desplegado en Sepolia.
+
+Crear el abi de Marketplace como hemos hecho con el de NFT, en artifacts y nombre del contrato nos llevamos todo lo que esta dentro del abi a un json 
