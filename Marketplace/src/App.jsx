@@ -94,6 +94,56 @@ function App() {
 
    const [allListings, setAllListings] = useState([]);
 
+
+    // Modal de precio
+    const [priceModal, setPriceModal] = useState({
+      isOpen: false,
+      mode: "list",         // "list" | "update"
+      tokenId: null,
+      defaultPrice: ""
+    });
+
+  // loading por NFT (mapa por tokenId)
+  const [txLoading, setTxLoading] = useState({});
+  const setTokenLoading = (id, v) => setTxLoading(prev => ({ ...prev, [id]: v }));
+
+
+  function openListModal(tokenId) {
+  setPriceModal({ isOpen: true, mode: "list", tokenId, defaultPrice: "0.01" });
+  }
+  function openUpdateModal(tokenId, currentPrice) {
+    setPriceModal({ isOpen: true, mode: "update", tokenId, defaultPrice: String(currentPrice ?? "0.01") });
+  }
+  function closePriceModal() {
+    setPriceModal(p => ({ ...p, isOpen: false }));
+  }
+
+async function confirmPrice(priceStr) {
+  try {
+    if (!priceStr || Number(priceStr) <= 0) {
+      alert("Introduce un precio > 0");
+      return;
+    }
+    const { mode, tokenId } = priceModal;
+    setTokenLoading(tokenId, true);
+
+    if (mode === "list") {
+      // evita listar tu propio NFT si ya está listado
+      const my = myNFTs.find(n => n.tokenId === tokenId);
+      if (my?.listed) { alert("Este NFT ya está listado"); return; }
+      await listToken(tokenId, priceStr);
+    } else {
+      await updateListing(tokenId, priceStr);
+    }
+    closePriceModal();
+  } catch (e) {
+    console.error(e);
+    alert(e?.message || "Error al confirmar precio");
+  } finally {
+    setTokenLoading(priceModal.tokenId, false);
+  }
+}
+
   /* ========= Firmas / contratos + acciones Marketplace ========= */
 
   const getSigner = async () => (await new BrowserProvider(walletProvider)).getSigner();
@@ -169,6 +219,12 @@ function App() {
     const signer = await getSigner();
     const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
     const value  = parseEther(String(priceEth));
+
+    // evita comprarte a ti mismo
+    const me = (await (await new BrowserProvider(walletProvider)).getSigner()).address?.toLowerCase?.();
+    const listing = myNFTs.find(n => n.tokenId === String(tokenId));
+    if (listing && listing.owner?.toLowerCase() === me) { alert("No puedes comprar tu propio NFT"); return; }
+
 
     await market.buyItem.staticCall(NFT_ADDRESS, tokenId, { value });
     const gas = await market.buyItem.estimateGas(NFT_ADDRESS, tokenId, { value });
@@ -431,15 +487,15 @@ return (
         <Text>Conectado como: {address}</Text>
         <HStack>
           <Button onClick={loadMyNFTs} isLoading={loadingNFTs} colorScheme="purple">
-            Ver mis NFTs
+            Mis NFTs
           </Button>
           <Button onClick={refreshProceeds} variant="outline">Actualizar saldo</Button>
           <Button onClick={withdrawProceeds} isDisabled={Number(proceedsEth) <= 0}>
             Retirar {proceedsEth} ETH
           </Button>
-          {/* Nuevo: botón para marketplace global */}
+          {/* Marketplace global */}
           <Button onClick={loadAllListings} colorScheme="orange">
-            Ver Marketplace Global
+            Marketplace Global
           </Button>
         </HStack>
       </VStack>
@@ -450,7 +506,7 @@ return (
     <Textarea placeholder="Descripción (opcional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
     <HStack><Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} /></HStack>
     <Button onClick={handleMint} colorScheme="blue" isDisabled={!isConnected || !file || !name || busy}>
-      {busy ? "Procesando..." : "Subir a IPFS y Mint"}
+      {busy ? "Procesando..." : "Mint NFT"}
     </Button>
 
     {/* Galería (Mis NFTs) */}
@@ -475,24 +531,43 @@ return (
                       <Text>💰 {nft.priceEth} ETH</Text>
                       {iAmOwner ? (
                         <HStack>
-                          <Button size="sm" onClick={() => cancelListing(nft.tokenId)}>Cancelar</Button>
-                          <Button size="sm" onClick={() => {
-                            const p = prompt("Nuevo precio en ETH:", String(nft.priceEth ?? "0.01"));
-                            if (p) updateListing(nft.tokenId, p);
-                          }}>Cambiar precio</Button>
+                          <Button
+                            size="sm"
+                            isLoading={!!txLoading[nft.tokenId]}
+                            onClick={() => {
+                              setTokenLoading(nft.tokenId, true);
+                              cancelListing(nft.tokenId).finally(() => setTokenLoading(nft.tokenId, false));
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => openUpdateModal(nft.tokenId, nft.priceEth)}
+                          >
+                            Cambiar precio
+                          </Button>
                         </HStack>
                       ) : (
-                        <Button size="sm" colorScheme="green" onClick={() => buyToken(nft.tokenId, nft.priceEth)}>
+                        <Button
+                          size="sm"
+                          colorScheme="green"
+                          isLoading={!!txLoading[nft.tokenId]}
+                          onClick={() => {
+                            setTokenLoading(nft.tokenId, true);
+                            buyToken(nft.tokenId, nft.priceEth).finally(() => setTokenLoading(nft.tokenId, false));
+                          }}
+                        >
                           Comprar
                         </Button>
                       )}
                     </>
                   ) : (
                     iAmOwner && (
-                      <Button size="sm" onClick={() => {
-                        const p = prompt("Precio en ETH:");
-                        if (p) listToken(nft.tokenId, p);
-                      }}>
+                      <Button
+                        size="sm"
+                        onClick={() => openListModal(nft.tokenId)}
+                      >
                         Listar
                       </Button>
                     )
@@ -519,7 +594,16 @@ return (
               <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
               <Text>Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}</Text>
               <Text mt="1">💰 {nft.priceEth} ETH</Text>
-              <Button size="sm" colorScheme="green" mt="2" onClick={() => buyToken(nft.tokenId, nft.priceEth)}>
+              <Button
+                size="sm"
+                colorScheme="green"
+                mt="2"
+                isLoading={!!txLoading[nft.tokenId]}
+                onClick={() => {
+                  setTokenLoading(nft.tokenId, true);
+                  buyToken(nft.tokenId, nft.priceEth).finally(() => setTokenLoading(nft.tokenId, false));
+                }}
+              >
                 Comprar
               </Button>
             </Box>
@@ -527,8 +611,41 @@ return (
         </SimpleGrid>
       </>
     )}
+
+    {/* === Modal de precio inline (sin dependencias extra) === */}
+    {priceModal?.isOpen && (
+      <Box position="fixed" inset="0" bg="blackAlpha.500" display="flex" alignItems="center" justifyContent="center" zIndex={1000}>
+        <Box bg="white" p="6" borderRadius="md" minW={["90vw","420px"]}>
+          <Heading size="md" mb="3">{priceModal.mode === "list" ? "Listar NFT" : "Actualizar precio"}</Heading>
+          <Text mb="2">Precio (ETH)</Text>
+          <Input
+            defaultValue={priceModal.defaultPrice}
+            id="__price_input__"
+            type="number"
+            step="0.0001"
+            min="0"
+            bg="gray.700"
+            color="white"
+            _placeholder={{ color: "gray.400" }}
+          />
+          <HStack mt="4" justify="flex-end">
+            <Button variant="ghost" onClick={closePriceModal}>Cancelar</Button>
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                const val = document.getElementById("__price_input__")?.value;
+                confirmPrice(val);
+              }}
+            >
+              Confirmar
+            </Button>
+          </HStack>
+        </Box>
+      </Box>
+    )}
   </VStack>
 );
+
 
 }
 
