@@ -19,3 +19,5 @@ Opcional: deshabilitar botones si no es Sepolia.
 Objetivo:
 
 Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en otra red.
+
+--- Cuando se cargue el Marketplace quiero que aparezcan los NFTs a la venta, que no tengas que darle al boton Ver Marketplace global

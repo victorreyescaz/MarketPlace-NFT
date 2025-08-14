@@ -92,6 +92,8 @@ function App() {
 
   const onPickFile = (e) => setFile(e.target.files?.[0] || null);
 
+   const [allListings, setAllListings] = useState([]);
+
   /* ========= Firmas / contratos + acciones Marketplace ========= */
 
   const getSigner = async () => (await new BrowserProvider(walletProvider)).getSigner();
@@ -227,10 +229,12 @@ function App() {
     }
   };
 
-  /* ================= Carga de NFTs (robusta a rate limits) ================= */
+  /* ================= Carga de NFTs ================= */
 
   const loadMyNFTs = async () => {
     if (!isConnected) return;
+
+    setAllListings([]); // vacía el marketplace global para que solo se vean mis NFTs
 
     try {
       setLoadingNFTs(true);
@@ -350,87 +354,182 @@ function App() {
     }
   };
 
+
+  /*=================== Marketplace global =================== */
+  // Cargar todos los NFts disponibles para comprar
+
+  const loadAllListings = async () => {
+
+  setMyNFTs([]); // vacía mis NFTs para que solo se vea el Marketplace global
+
+
+  try {
+    setLoadingNFTs(true);
+
+    const provider = await getReadProvider(walletProvider);
+    const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
+    const nft = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
+
+    // Buscar eventos ItemListed (últimos 1k bloques)
+    const latestBlock = await provider.getBlockNumber();
+    const fromBlock = latestBlock - 1000;
+    const logs = await market.queryFilter(market.filters.ItemListed(), fromBlock, latestBlock);
+
+    // Obtener listados únicos (nft+tokenId)
+    const listingsMap = new Map();
+    for (const log of logs) {
+      const { nft: nftAddr, tokenId, seller, price } = log.args;
+      if (price > 0n) {
+        listingsMap.set(`${nftAddr}-${tokenId}`, { nftAddr, tokenId, seller, price });
+      }
+    }
+
+    const items = [];
+    for (const { nftAddr, tokenId, seller, price } of listingsMap.values()) {
+      try {
+        let uri = await nft.tokenURI(tokenId);
+        if (uri.startsWith("ipfs://")) uri = uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+        const meta = await fetch(uri).then(r => r.json());
+        let img = meta.image;
+        if (img.startsWith("ipfs://")) img = img.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+
+        items.push({
+          tokenId: tokenId.toString(),
+          name: meta.name,
+          description: meta.description,
+          image: img,
+          seller,
+          priceEth: formatEther(price),
+        });
+      } catch (e) {
+        console.warn("Error cargando NFT:", tokenId.toString(), e);
+      }
+    }
+
+    setAllListings(items);
+  } catch (err) {
+    console.error(err);
+    alert("Error cargando marketplace global");
+  } finally {
+    setLoadingNFTs(false);
+  }
+};
+
+
   /* ================= Render ================= */
 
-  return (
-    <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
-      <Heading textAlign="center">NFT Marketplace</Heading>
+return (
+  <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
+    <Heading textAlign="center">NFT Marketplace</Heading>
 
-      {!isConnected ? (
-        <Button onClick={() => open({ view: "Connect", namespace: "eip155" })} colorScheme="teal">
-          Conectar Wallet
-        </Button>
-      ) : (
-        <VStack>
-          <Text>Conectado como: {address}</Text>
-          <HStack>
-            <Button onClick={loadMyNFTs} isLoading={loadingNFTs} colorScheme="purple">Ver mis NFTs</Button>
-            <Button onClick={refreshProceeds} variant="outline">Actualizar saldo</Button>
-            <Button onClick={withdrawProceeds} isDisabled={Number(proceedsEth) <= 0}>Retirar {proceedsEth} ETH</Button>
-          </HStack>
-        </VStack>
-      )}
-
-      {/* Formulario de minteo */}
-      <Input placeholder="Nombre del NFT" value={name} onChange={(e) => setName(e.target.value)} />
-      <Textarea placeholder="Descripción (opcional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
-      <HStack><Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} /></HStack>
-      <Button onClick={handleMint} colorScheme="blue" isDisabled={!isConnected || !file || !name || busy}>
-        {busy ? "Procesando..." : "Subir a IPFS y Mint"}
+    {!isConnected ? (
+      <Button onClick={() => open({ view: "Connect", namespace: "eip155" })} colorScheme="teal">
+        Conectar Wallet
       </Button>
+    ) : (
+      <VStack>
+        <Text>Conectado como: {address}</Text>
+        <HStack>
+          <Button onClick={loadMyNFTs} isLoading={loadingNFTs} colorScheme="purple">
+            Ver mis NFTs
+          </Button>
+          <Button onClick={refreshProceeds} variant="outline">Actualizar saldo</Button>
+          <Button onClick={withdrawProceeds} isDisabled={Number(proceedsEth) <= 0}>
+            Retirar {proceedsEth} ETH
+          </Button>
+          {/* Nuevo: botón para marketplace global */}
+          <Button onClick={loadAllListings} colorScheme="orange">
+            Ver Marketplace Global
+          </Button>
+        </HStack>
+      </VStack>
+    )}
 
-      {/* Galería */}
-      {myNFTs.length > 0 && (
-        <>
-          <Divider />
-          <SimpleGrid columns={[1, 2, 3]} spacing={5}>
-            {myNFTs.map((nft) => {
-              const iAmOwner = nft.owner?.toLowerCase() === address?.toLowerCase();
+    {/* Formulario de minteo */}
+    <Input placeholder="Nombre del NFT" value={name} onChange={(e) => setName(e.target.value)} />
+    <Textarea placeholder="Descripción (opcional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
+    <HStack><Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} /></HStack>
+    <Button onClick={handleMint} colorScheme="blue" isDisabled={!isConnected || !file || !name || busy}>
+      {busy ? "Procesando..." : "Subir a IPFS y Mint"}
+    </Button>
 
-              return (
-                <Box key={nft.tokenId} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
-                  <Image src={nft.image} alt={nft.name} />
-                  <Heading size="md" mt="2">{nft.name}</Heading>
-                  <Text fontSize="sm" color="gray.600">{nft.description}</Text>
-                  <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+    {/* Galería (Mis NFTs) */}
+    {myNFTs.length > 0 && (
+      <>
+        <Divider />
+        <Heading size="lg">Mis NFTs</Heading>
+        <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+          {myNFTs.map((nft) => {
+            const iAmOwner = nft.owner?.toLowerCase() === address?.toLowerCase();
 
-                  <Stack mt="3" spacing={2}>
-                    {nft.listed ? (
-                      <>
-                        <Text>💰 {nft.priceEth} ETH</Text>
-                        {iAmOwner ? (
-                          <HStack>
-                            <Button size="sm" onClick={() => cancelListing(nft.tokenId)}>Cancelar</Button>
-                            <Button size="sm" onClick={() => {
-                              const p = prompt("Nuevo precio en ETH:", String(nft.priceEth ?? "0.01"));
-                              if (p) updateListing(nft.tokenId, p);
-                            }}>Cambiar precio</Button>
-                          </HStack>
-                        ) : (
-                          <Button size="sm" colorScheme="green" onClick={() => buyToken(nft.tokenId, nft.priceEth)}>
-                            Comprar
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      iAmOwner && (
-                        <Button size="sm" onClick={() => {
-                          const p = prompt("Precio en ETH:");
-                          if (p) listToken(nft.tokenId, p);
-                        }}>
-                          Listar
+            return (
+              <Box key={nft.tokenId} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
+                <Image src={nft.image} alt={nft.name} />
+                <Heading size="md" mt="2">{nft.name}</Heading>
+                <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+                <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+
+                <Stack mt="3" spacing={2}>
+                  {nft.listed ? (
+                    <>
+                      <Text>💰 {nft.priceEth} ETH</Text>
+                      {iAmOwner ? (
+                        <HStack>
+                          <Button size="sm" onClick={() => cancelListing(nft.tokenId)}>Cancelar</Button>
+                          <Button size="sm" onClick={() => {
+                            const p = prompt("Nuevo precio en ETH:", String(nft.priceEth ?? "0.01"));
+                            if (p) updateListing(nft.tokenId, p);
+                          }}>Cambiar precio</Button>
+                        </HStack>
+                      ) : (
+                        <Button size="sm" colorScheme="green" onClick={() => buyToken(nft.tokenId, nft.priceEth)}>
+                          Comprar
                         </Button>
-                      )
-                    )}
-                  </Stack>
-                </Box>
-              );
-            })}
-          </SimpleGrid>
-        </>
-      )}
-    </VStack>
-  );
+                      )}
+                    </>
+                  ) : (
+                    iAmOwner && (
+                      <Button size="sm" onClick={() => {
+                        const p = prompt("Precio en ETH:");
+                        if (p) listToken(nft.tokenId, p);
+                      }}>
+                        Listar
+                      </Button>
+                    )
+                  )}
+                </Stack>
+              </Box>
+            );
+          })}
+        </SimpleGrid>
+      </>
+    )}
+
+    {/* Marketplace Global */}
+    {allListings?.length > 0 && (
+      <>
+        <Divider />
+        <Heading size="lg">Marketplace Global</Heading>
+        <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+          {allListings.map((nft) => (
+            <Box key={`${nft.tokenId}-${nft.seller}`} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
+              <Image src={nft.image} alt={nft.name} />
+              <Heading size="md" mt="2">{nft.name}</Heading>
+              <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+              <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+              <Text>Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}</Text>
+              <Text mt="1">💰 {nft.priceEth} ETH</Text>
+              <Button size="sm" colorScheme="green" mt="2" onClick={() => buyToken(nft.tokenId, nft.priceEth)}>
+                Comprar
+              </Button>
+            </Box>
+          ))}
+        </SimpleGrid>
+      </>
+    )}
+  </VStack>
+);
+
 }
 
 export default App;
