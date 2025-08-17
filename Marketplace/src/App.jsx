@@ -11,26 +11,6 @@ import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } f
 import NFT_ABI from "./abis/NFT.json";
 import MARKET_ABI from "./abis/Marketplace.json";
 
-/* ================= Helpers RPC + reintentos ================= */
-
-const READ_RPC = import.meta.env.VITE_RPC_SEPOLIA || ""; // p.ej. https://go.getblock.io/<KEY>/sepolia/
-
-const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
-
-async function withRetry(fn, { attempts = 3, delayMs = 300 } = {}) {
-  let lastErr;
-  for (let i = 0; i < attempts; i++) {
-    try { return await fn(); }
-    catch (e) { lastErr = e; await sleep(delayMs * (i + 1)); }
-  }
-  throw lastErr;
-}
-
-async function getReadProvider(walletProvider) {
-  if (READ_RPC) return new JsonRpcProvider(READ_RPC);
-  return new BrowserProvider(walletProvider);
-}
-
 /* ================= Direcciones y ABIs ================= */
 
 const NFT_ADDRESS    = "0xe23fcfa688bd1ff6d0f31bac7cd7d4965d0c285e";// en minúsculas
@@ -39,6 +19,89 @@ const MARKET_ADDRESS = "0x47576a1704597adf6bf9268f1125388748908a2a";// en minús
 // Si en el JSON hay solo el array => úsalo directo; si es artifact completo => usa .abi
 const NFT_IFACE    = Array.isArray(NFT_ABI) ? NFT_ABI : NFT_ABI.abi;
 const MARKET_IFACE = Array.isArray(MARKET_ABI) ? MARKET_ABI : MARKET_ABI.abi;
+
+
+
+/* ================= Helpers RPC + reintentos ================= */
+
+const READ_RPC = import.meta.env.VITE_RPC_SEPOLIA || "";
+
+// Paginación para RPC
+const MARKET_DEPLOY_BLOCK = Number(import.meta.env.VITE_MARKET_DEPLOY_BLOCK || 0);
+const BLOCK_PAGE   = 80;   // bajar si hay error 429
+const PAGE_DELAY_MS = 1200;  // pausa entre páginas
+const MIN_WINDOW   = 80;   // ventana mínima al reducir
+const MAX_RETRIES  = 3;     // reintentos lecturas puntuales
+
+// cuántos NFTs traer por llamada y tope de páginas internas
+const GLOBAL_BATCH_TARGET = 10;  // pon 12–15 si quieres
+const GLOBAL_MAX_PAGES    = 6;   // seguridad para no abusar del RPC
+
+
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+async function withRetry(fn, { attempts = MAX_RETRIES, delayMs = 250 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try { return await fn(); }
+    catch (e) { lastErr = e; await sleep(delayMs * (i + 1)); }
+  }
+  throw lastErr;
+}
+
+let _cachedReader = null;
+
+async function getReadProvider(walletProvider) {
+  if (_cachedReader) return _cachedReader;
+
+  if (READ_RPC) {
+    const p = new JsonRpcProvider(READ_RPC);
+    try {
+      await p.getNetwork();          // valida que el RPC responde
+      _cachedReader = p;
+      return p;
+    } catch (e) {
+      console.warn("[getReadProvider] READ_RPC falló, usando BrowserProvider:", e?.code || e?.message || e);
+    }
+  }
+
+  // Fallback: usa el provider de la wallet (Metamask) para lectura
+  const browser = new BrowserProvider(walletProvider);
+  _cachedReader = browser;
+  return browser;
+}
+
+
+function isRateLimit(e) {
+  const code = e?.code ?? e?.error?.code ?? e?.status;
+  const msg  = (e?.message || e?.error?.message || "").toLowerCase();
+  return code === 429 || code === -32005 || msg.includes("rate") || msg.includes("too many");
+}
+
+// Pide SOLO ItemListed en [from,to]; si -32005/429, reduce la ventana y reintenta
+async function fetchListedRange(market, from, to, minWindow = 40) {
+  let left = from, right = to;
+
+  while (true) {
+    try {
+      const logs = await market.queryFilter(market.filters.ItemListed(), left, right);
+      return { logs, usedFrom: left, usedTo: right };
+    } catch (e) {
+      const msg  = (e?.message || e?.error?.message || "").toLowerCase();
+      const code = e?.code ?? e?.error?.code ?? e?.status;
+      const isRate = code === 429 || code === -32005 || msg.includes("rate") || msg.includes("too many");
+
+      const win = right - left;
+      if (!isRate || win <= minWindow) throw e;
+
+      // recorta la ventana y vuelve a intentar
+      const half = Math.max(minWindow, Math.floor(win / 2));
+      right = left + half;
+      await sleep(400);
+    }
+  }
+}
+
 
 /* ================= Pinata helpers ================= */
 
@@ -92,16 +155,19 @@ function App() {
 
   const onPickFile = (e) => setFile(e.target.files?.[0] || null);
 
-   const [allListings, setAllListings] = useState([]);
+  // Marketplace Global
+  const [allListings, setAllListings] = useState([]);
+  const [globalCursor, setGlobalCursor] = useState({ nextTo: 0, done: false }); // control del rango de bloques
+  const [loadingGlobal, setLoadingGlobal] = useState(false);
 
 
-    // Modal de precio
-    const [priceModal, setPriceModal] = useState({
-      isOpen: false,
-      mode: "list",         // "list" | "update"
-      tokenId: null,
-      defaultPrice: ""
-    });
+  // Modal de precio
+  const [priceModal, setPriceModal] = useState({
+    isOpen: false,
+    mode: "list",         // "list" | "update"
+    tokenId: null,
+    defaultPrice: ""
+  });
 
   // loading por NFT (mapa por tokenId)
   const [txLoading, setTxLoading] = useState({});
@@ -412,64 +478,94 @@ async function confirmPrice(priceStr) {
 
 
   /*=================== Marketplace global =================== */
-  // Cargar todos los NFts disponibles para comprar
 
-  const loadAllListings = async () => {
 
-  setMyNFTs([]); // vacía mis NFTs para que solo se vea el Marketplace global
-
+// Cargar Marketplace Global con paginación por bloques
+const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
+  if (loadingGlobal) return;
 
   try {
-    setLoadingNFTs(true);
+    setMyNFTs([]);            // ocultar “Mis NFTs” cuando abrimos el global
+    setLoadingGlobal(true);
 
     const provider = await getReadProvider(walletProvider);
     const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
-    const nft = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
+    const nft    = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
 
-    // Buscar eventos ItemListed (últimos 1k bloques)
-    const latestBlock = await provider.getBlockNumber();
-    const fromBlock = latestBlock - 1000;
-    const logs = await market.queryFilter(market.filters.ItemListed(), fromBlock, latestBlock);
+    // fusionar sin duplicados por tokenId
+    const base = reset ? [] : allListings;
+    const map  = new Map(base.map(it => [it.tokenId, it]));
 
-    // Obtener listados únicos (nft+tokenId)
-    const listingsMap = new Map();
-    for (const log of logs) {
-      const { nft: nftAddr, tokenId, seller, price } = log.args;
-      if (price > 0n) {
-        listingsMap.set(`${nftAddr}-${tokenId}`, { nftAddr, tokenId, seller, price });
+    let collected = 0;
+    let pages     = 0;
+
+    const latest = await provider.getBlockNumber();
+    let to   = (reset || !globalCursor.nextTo) ? latest : globalCursor.nextTo;
+    let done = false;
+
+    while (pages < GLOBAL_MAX_PAGES && collected < target && !done) {
+      const fromDesired = Math.max(MARKET_DEPLOY_BLOCK, to - BLOCK_PAGE);
+
+      // SOLO ItemListed (tu helper con backoff)
+      const { logs: listedLogs, usedFrom } =
+        await fetchListedRange(market, fromDesired, to);
+
+      let addedThisPage = 0;
+
+      for (const log of listedLogs) {
+        const { nft: nftAddr, tokenId, seller } = log.args;
+        if (nftAddr.toLowerCase() !== NFT_ADDRESS) continue;  // quita si usas multi-colección
+        const key = tokenId.toString();
+        if (map.has(key)) continue;
+
+        try {
+          const listing = await withRetry(() => market.getListing(NFT_ADDRESS, tokenId));
+          if (listing.price > 0n) { // sigue listado
+            let uri = await withRetry(() => nft.tokenURI(tokenId));
+            if (uri.startsWith("ipfs://")) uri = uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+            const meta = await withRetry(() => fetch(uri).then(r => r.json()));
+            let img = meta.image;
+            if (img?.startsWith("ipfs://")) img = img.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+
+            map.set(key, {
+              tokenId: key,
+              name: meta.name,
+              description: meta.description,
+              image: img,
+              seller,
+              priceEth: formatEther(listing.price),
+            });
+            addedThisPage++;
+          }
+        } catch (e) {
+          console.warn("[Global] no resolví tokenId=", key, e?.message || e);
+        }
+      }
+
+      collected += addedThisPage;
+      done = (usedFrom <= MARKET_DEPLOY_BLOCK);
+      to   = usedFrom - 1;   // movemos ventana hacia atrás
+      pages++;
+
+      if (!done && (collected < target) && pages < GLOBAL_MAX_PAGES) {
+        await sleep(PAGE_DELAY_MS); // respiro para no 429
       }
     }
 
-    const items = [];
-    for (const { nftAddr, tokenId, seller, price } of listingsMap.values()) {
-      try {
-        let uri = await nft.tokenURI(tokenId);
-        if (uri.startsWith("ipfs://")) uri = uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
-        const meta = await fetch(uri).then(r => r.json());
-        let img = meta.image;
-        if (img.startsWith("ipfs://")) img = img.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
-
-        items.push({
-          tokenId: tokenId.toString(),
-          name: meta.name,
-          description: meta.description,
-          image: img,
-          seller,
-          priceEth: formatEther(price),
-        });
-      } catch (e) {
-        console.warn("Error cargando NFT:", tokenId.toString(), e);
-      }
-    }
-
-    setAllListings(items);
+    setAllListings(Array.from(map.values()));
+    setGlobalCursor({ nextTo: to, done });
   } catch (err) {
-    console.error(err);
-    alert("Error cargando marketplace global");
+    console.error("loadAllListings:", err);
+    alert("Error cargando Marketplace Global");
   } finally {
-    setLoadingNFTs(false);
+    setLoadingGlobal(false);
+    await sleep(PAGE_DELAY_MS); // pausa cortesía entre clics
   }
 };
+
+
+
+
 
 
   /* ================= Render ================= */
@@ -494,9 +590,14 @@ return (
             Retirar {proceedsEth} ETH
           </Button>
           {/* Marketplace global */}
-          <Button onClick={loadAllListings} colorScheme="orange">
-            Marketplace Global
+          <Button onClick={() => loadAllListings(true)}  isDisabled={loadingGlobal}>
+          Marketplace Global
           </Button>
+          {!globalCursor.done && (
+          <Button onClick={() => loadAllListings(false)} isLoading={loadingGlobal} variant="outline">
+            Cargar más
+          </Button>
+)}
         </HStack>
       </VStack>
     )}
@@ -577,6 +678,25 @@ return (
             );
           })}
         </SimpleGrid>
+        {/* Paginación */}
+        {allListings.length > 0 && !globalCursor.done && (
+          <HStack justify="center" mt="4">
+            <Button
+              onClick={() => loadAllListings(false)}
+              isLoading={loadingGlobal}
+              variant="outline"
+            >
+              Cargar más
+            </Button>
+          </HStack>
+        )}
+
+        {allListings.length > 0 && globalCursor.done && (
+          <Text mt="4" textAlign="center" color="gray.400">
+            Has llegado al inicio del deploy. No hay más listados antiguos.
+          </Text>
+        )}
+
       </>
     )}
 
@@ -612,7 +732,7 @@ return (
       </>
     )}
 
-    {/* === Modal de precio inline (sin dependencias extra) === */}
+    {/* === Modal de precio inline === */}
     {priceModal?.isOpen && (
       <Box position="fixed" inset="0" bg="blackAlpha.500" display="flex" alignItems="center" justifyContent="center" zIndex={1000}>
         <Box bg="white" p="6" borderRadius="md" minW={["90vw","420px"]}>

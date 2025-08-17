@@ -23,3 +23,7 @@ Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en ot
 --- Cuando se cargue el Marketplace quiero que aparezcan los NFTs a la venta, que no tengas que darle al boton Ver Marketplace global
 
 --- Introducir un titulo en el modal cuando vamos a listar o cambiar el precio del NFT ya listado
+
+--- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo
+
+--- Poder mintear mas de un NFT a la vez, una coleccion
