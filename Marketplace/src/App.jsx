@@ -1,15 +1,21 @@
 import React, { useState } from "react";
+
 import {
-  Button, VStack, Text, Heading, Input, Textarea, HStack,
-  SimpleGrid, Box, Image, Stack
+Button, VStack, Text, Heading, Input, Textarea, HStack,
+SimpleGrid, Box, Image, Stack
 } from "@chakra-ui/react";
-import { Divider } from "@chakra-ui/layout";
 
 import { useAppKitProvider, useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } from "ethers";
 
 import NFT_ABI from "./abis/NFT.json";
 import MARKET_ABI from "./abis/Marketplace.json";
+
+// Sustituto del Divider ya que tenemos problemas para importarlo
+
+const DividerLine = (props) => (
+  <Box as="hr" borderTopWidth="1px" borderColor="whiteAlpha.300" my="4" {...props} />
+);
 
 /* ================= Direcciones y ABIs ================= */
 
@@ -34,8 +40,11 @@ const MIN_WINDOW   = 80;   // ventana mínima al reducir
 const MAX_RETRIES  = 3;     // reintentos lecturas puntuales
 
 // cuántos NFTs traer por llamada y tope de páginas internas
-const GLOBAL_BATCH_TARGET = 10;  // pon 12–15 si quieres
+const GLOBAL_BATCH_TARGET = 10;  // Nfts que se cargan por pagina
 const GLOBAL_MAX_PAGES    = 6;   // seguridad para no abusar del RPC
+
+
+
 
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
@@ -173,6 +182,12 @@ function App() {
   const [txLoading, setTxLoading] = useState({});
   const setTokenLoading = (id, v) => setTxLoading(prev => ({ ...prev, [id]: v }));
 
+  // Controles de filtro/ordenación del Marketplace Global
+  const [q, setQ] = useState("");            // búsqueda (nombre/desc/token/seller)
+  const [minP, setMinP] = useState("");      // precio mínimo (ETH)
+  const [maxP, setMaxP] = useState("");      // precio máximo (ETH)
+  const [sort, setSort] = useState("recent"); // recent | price-asc | price-desc
+
 
   function openListModal(tokenId) {
   setPriceModal({ isOpen: true, mode: "list", tokenId, defaultPrice: "0.01" });
@@ -281,24 +296,77 @@ async function confirmPrice(priceStr) {
     await loadMyNFTs();
   }
 
-  async function buyToken(tokenId, priceEth) {
-    const signer = await getSigner();
-    const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
-    const value  = parseEther(String(priceEth));
+  async function buyToken(tokenId, priceEth, sellerFromCard) {
+  try {
+    if (!walletProvider) {
+      alert("Conecta tu wallet");
+      return;
+    }
 
-    // evita comprarte a ti mismo
-    const me = (await (await new BrowserProvider(walletProvider)).getSigner()).address?.toLowerCase?.();
-    const listing = myNFTs.find(n => n.tokenId === String(tokenId));
-    if (listing && listing.owner?.toLowerCase() === me) { alert("No puedes comprar tu propio NFT"); return; }
+    // Tu address
+    const me = address?.toLowerCase?.();
 
+    // Guardia rápida si la card ya trae el seller (Marketplace Global)
+    if (sellerFromCard && sellerFromCard.toLowerCase() === me) {
+      alert("No puedes comprar tu propio NFT");
+      return;
+    }
 
-    await market.buyItem.staticCall(NFT_ADDRESS, tokenId, { value });
-    const gas = await market.buyItem.estimateGas(NFT_ADDRESS, tokenId, { value });
-    const tx  = await market.buyItem(NFT_ADDRESS, tokenId, { value, gasLimit: (gas * 120n) / 100n });
+    // Provider de lectura y contrato (lectura)
+    const readProv = await getReadProvider(walletProvider);
+    const marketR  = new Contract(MARKET_ADDRESS, MARKET_IFACE, readProv);
+
+    // Consulta on-chain del listing
+    const listing = await marketR.getListing(NFT_ADDRESS, tokenId);
+    const seller  = listing.seller?.toLowerCase?.() || "";
+    const onChainPrice = listing.price; // BigInt
+
+    if (onChainPrice === 0n) {
+      alert("Este NFT ya no está listado.");
+      return;
+    }
+    if (seller === me) {
+      alert("No puedes comprar tu propio NFT");
+      return;
+    }
+
+    // value a enviar (usa el precio on-chain por seguridad)
+    const value = onChainPrice; // o parseEther(String(priceEth)) si quieres mantener el de UI
+    // Nota: si quieres validar que priceEth coincide:
+    // if (parseEther(String(priceEth)) < onChainPrice) { alert("El precio ha cambiado, recarga."); return; }
+
+    // Signer y contrato (escritura)
+    const signer  = await getSigner();
+    const marketW = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
+
+    // Simulación + estimación gas (con mensajes claros si va a fallar)
+    try {
+      await marketW.buyItem.staticCall(NFT_ADDRESS, tokenId, { value });
+    } catch (e) {
+      console.error("staticCall buyItem falló:", e);
+      const msg = e?.shortMessage || e?.reason || e?.message || e;
+      alert("La compra fallará (simulación): " + msg);
+      return;
+    }
+
+    const gas = await marketW.buyItem.estimateGas(NFT_ADDRESS, tokenId, { value });
+    const gasLimit = (gas * 120n) / 100n;
+
+    const tx = await marketW.buyItem(NFT_ADDRESS, tokenId, { value, gasLimit });
     await tx.wait();
+
     alert("✅ NFT comprado");
+    // refresca tus datos
     await loadMyNFTs();
+    // si estás en global, recarga listados por si se agotó
+    // await loadAllListings(true);
+  } catch (err) {
+    console.error(err);
+    const msg = err?.shortMessage || err?.reason || err?.message || String(err);
+    alert("❌ Error al comprar: " + msg);
   }
+}
+
 
   async function refreshProceeds() {
     try {
@@ -514,7 +582,10 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
 
       for (const log of listedLogs) {
         const { nft: nftAddr, tokenId, seller } = log.args;
-        if (nftAddr.toLowerCase() !== NFT_ADDRESS) continue;  // quita si usas multi-colección
+        const blockNumber = log.blockNumber; // para ordenar por recientes
+
+
+        if (nftAddr.toLowerCase() !== NFT_ADDRESS) continue;  // quitar si usamos multi-colección
         const key = tokenId.toString();
         if (map.has(key)) continue;
 
@@ -534,6 +605,7 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
               image: img,
               seller,
               priceEth: formatEther(listing.price),
+              blockNumber,
             });
             addedThisPage++;
           }
@@ -563,7 +635,74 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
   }
 };
 
+/* ================= Lista derivada con filtros y ordenacion ================= */
 
+  const filteredGlobal = React.useMemo(() => {
+    let arr = Array.isArray(allListings) ? [...allListings] : [];
+
+  // búsqueda
+  const raw = q.trim();
+  if (raw) {
+    const digitsOnly   = /^\d+$/.test(raw);          // "6"
+    const digitsFromRaw = raw.replace(/\D/g, "");    // "#6" -> "6"
+    const needle = raw.toLowerCase();
+
+    if (digitsOnly) {
+      // 👉 si es solo números, busca por tokenId exacto
+      arr = arr.filter(it => String(it.tokenId ?? "") === raw);
+    } else if (digitsFromRaw) {
+      // si tiene números con prefijo (#6, id:6), también filtra por tokenId
+      arr = arr.filter(it => {
+        const tokenStr = String(it.tokenId ?? "");
+        const inId = tokenStr === digitsFromRaw;
+
+        const inName = (it.name || "").toLowerCase().includes(needle);
+        const inDesc = (it.description || "").toLowerCase().includes(needle);
+        const inSeller = (it.seller || "").toLowerCase().includes(needle);
+
+        return inId || inName || inDesc || inSeller;
+      });
+    } else {
+      // búsqueda normal por texto
+      arr = arr.filter(it => {
+        const inName = (it.name || "").toLowerCase().includes(needle);
+        const inDesc = (it.description || "").toLowerCase().includes(needle);
+        const inSeller = (it.seller || "").toLowerCase().includes(needle);
+        return inName || inDesc || inSeller;
+      });
+    }
+  }
+
+
+
+  // rango de precio
+  const min = parseFloat(minP);
+  const max = parseFloat(maxP);
+  const isNum = (x) => Number.isFinite(x);
+
+  if (isNum(min)) {
+    arr = arr.filter(it => Number.parseFloat(it.priceEth ?? "0") >= min);
+  }
+  if (isNum(max)) {
+    arr = arr.filter(it => Number.parseFloat(it.priceEth ?? "0") <= max);
+  }
+
+  // ordenación
+  if (sort === "price-asc") {
+    arr.sort((a,b) => Number.parseFloat(a.priceEth||"0") - Number.parseFloat(b.priceEth||"0"));
+  } else if (sort === "price-desc") {
+    arr.sort((a,b) => Number.parseFloat(b.priceEth||"0") - Number.parseFloat(a.priceEth||"0"));
+  } else {
+    // "recent": por blockNumber (mayor primero). Si no hay, cae a tokenId desc
+    arr.sort((a,b) => {
+      const ba = a.blockNumber ?? 0, bb = b.blockNumber ?? 0;
+      if (bb !== ba) return bb - ba;
+      return Number(b.tokenId||0) - Number(a.tokenId||0);
+    });
+  }
+
+  return arr;
+}, [allListings, q, minP, maxP, sort]);
 
 
 
@@ -585,14 +724,29 @@ return (
           <Button onClick={loadMyNFTs} isLoading={loadingNFTs} colorScheme="purple">
             Mis NFTs
           </Button>
-          <Button onClick={refreshProceeds} variant="outline">Actualizar saldo</Button>
+          <Button onClick={refreshProceeds} variant="outline">
+            Actualizar saldo
+            </Button>
           <Button onClick={withdrawProceeds} isDisabled={Number(proceedsEth) <= 0}>
             Retirar {proceedsEth} ETH
           </Button>
-          {/* Marketplace global */}
-          <Button onClick={() => loadAllListings(true)}  isDisabled={loadingGlobal}>
-          Marketplace Global
-          </Button>
+
+  {/* Marketplace global */}
+          <Button
+            colorScheme="orange"
+            isDisabled={loadingGlobal}
+            onClick={() => {
+              // reset de filtros/orden
+              setQ("");
+              setMinP("");
+              setMaxP("");
+              setSort("recent");
+              // primera carga
+              loadAllListings(true);
+            }}
+          >
+            Marketplace Global
+        </Button>
           {!globalCursor.done && (
           <Button onClick={() => loadAllListings(false)} isLoading={loadingGlobal} variant="outline">
             Cargar más
@@ -613,7 +767,7 @@ return (
     {/* Galería (Mis NFTs) */}
     {myNFTs.length > 0 && (
       <>
-        <Divider />
+        <DividerLine />
         <Heading size="lg">Mis NFTs</Heading>
         <SimpleGrid columns={[1, 2, 3]} spacing={5}>
           {myNFTs.map((nft) => {
@@ -656,7 +810,7 @@ return (
                           isLoading={!!txLoading[nft.tokenId]}
                           onClick={() => {
                             setTokenLoading(nft.tokenId, true);
-                            buyToken(nft.tokenId, nft.priceEth).finally(() => setTokenLoading(nft.tokenId, false));
+                            buyToken(nft.tokenId, nft.priceEth, nft.seller).finally(() => setTokenLoading(nft.tokenId, false));
                           }}
                         >
                           Comprar
@@ -701,36 +855,106 @@ return (
     )}
 
     {/* Marketplace Global */}
-    {allListings?.length > 0 && (
       <>
-        <Divider />
-        <Heading size="lg">Marketplace Global</Heading>
-        <SimpleGrid columns={[1, 2, 3]} spacing={5}>
-          {allListings.map((nft) => (
-            <Box key={`${nft.tokenId}-${nft.seller}`} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
-              <Image src={nft.image} alt={nft.name} />
-              <Heading size="md" mt="2">{nft.name}</Heading>
-              <Text fontSize="sm" color="gray.600">{nft.description}</Text>
-              <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
-              <Text>Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}</Text>
-              <Text mt="1">💰 {nft.priceEth} ETH</Text>
-              <Button
-                size="sm"
-                colorScheme="green"
-                mt="2"
-                isLoading={!!txLoading[nft.tokenId]}
-                onClick={() => {
-                  setTokenLoading(nft.tokenId, true);
-                  buyToken(nft.tokenId, nft.priceEth).finally(() => setTokenLoading(nft.tokenId, false));
-                }}
-              >
-                Comprar
-              </Button>
-            </Box>
-          ))}
-        </SimpleGrid>
-      </>
+    <DividerLine />
+    <Heading size="lg">Marketplace Global</Heading>
+
+    {/* Controles de búsqueda/filtrado/ordenación */}
+    <HStack spacing={3} flexWrap="wrap" mb={4}>
+      <Input
+        placeholder="Buscar (nombre, descripción, tokenId, seller)"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        maxW="360px"
+      />
+      <HStack>
+        <Input
+          placeholder="Precio min (ETH)"
+          type="number"
+          step="0.0001"
+          value={minP}
+          onChange={(e) => setMinP(e.target.value)}
+          maxW="160px"
+        />
+        <Input
+          placeholder="Precio máx (ETH)"
+          type="number"
+          step="0.0001"
+          value={maxP}
+          onChange={(e) => setMaxP(e.target.value)}
+          maxW="160px"
+        />
+      </HStack>
+      <Box as="select" value={sort} onChange={(e) => setSort(e.target.value)} maxW="220px" px={3} py={2} borderWidth="1px" borderRadius="md" bg="blackAlpha.300">
+        <option value="recent">Más recientes</option>
+        <option value="price-asc">Precio: menor a mayor</option>
+        <option value="price-desc">Precio: mayor a menor</option>
+      </Box>
+      <Text fontSize="sm" color="gray.400">
+        {filteredGlobal.length} resultados
+      </Text>
+    </HStack>
+
+    {/* Lista o estado vacío */}
+    {filteredGlobal.length > 0 ? (
+      <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+        {filteredGlobal.map((nft) => (
+          <Box
+            key={`${nft.tokenId}-${nft.seller}`}
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            p="3"
+          >
+            <Image src={nft.image} alt={nft.name} />
+            <Heading size="md" mt="2">{nft.name}</Heading>
+            <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+            <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+            <Text>
+              Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}
+            </Text>
+            <Text mt="1">💰 {nft.priceEth} ETH</Text>
+            <Button
+              size="sm"
+              colorScheme="green"
+              mt="2"
+              isLoading={!!txLoading[nft.tokenId]}
+              onClick={() => {
+                setTokenLoading(nft.tokenId, true);
+                buyToken(nft.tokenId, nft.priceEth).finally(() =>
+                  setTokenLoading(nft.tokenId, false)
+                );
+              }}
+            >
+              Comprar
+            </Button>
+          </Box>
+        ))}
+      </SimpleGrid>
+    ) : (
+      <Box p="6" borderWidth="1px" borderRadius="md" bg="blackAlpha.200">
+        <Text>
+          {loadingGlobal
+            ? "Cargando listados..."
+            : "No hay listados (o no coinciden con los filtros)."}
+        </Text>
+      </Box>
     )}
+
+    {/* Botón de carga adicional */}
+    {!globalCursor.done && (
+      <Button
+        onClick={() => loadAllListings(false)}
+        isLoading={loadingGlobal}
+        variant="outline"
+        mt={4}
+      >
+        Cargar más
+      </Button>
+    )}
+  </>
+
+
 
     {/* === Modal de precio inline === */}
     {priceModal?.isOpen && (

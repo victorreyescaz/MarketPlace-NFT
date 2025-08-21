@@ -27,3 +27,57 @@ Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en ot
 --- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo
 
 --- Poder mintear mas de un NFT a la vez, una coleccion
+
+--- Hacer un archivo HTML con el esquema de la web?
+
+
+
+
+
+
+
+
+
+
+Ordenación / filtrado: poder mostrar primero los más recientes, los más baratos, o buscar por nombre/tokenID.
+
+Manejo de errores UX: si falla un fetch, mostrar un mensaje en la UI (no solo en consola).
+
+Indicadores de carga: spinner o skeletons mientras se cargan NFTs.
+
+Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
+
+Soporte multi-colección: si algún día quieres que el marketplace soporte varios contratos NFT, ya lo tienes medio hecho (con el nftAddr).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
