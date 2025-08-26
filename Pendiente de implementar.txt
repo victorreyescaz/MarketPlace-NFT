@@ -28,12 +28,11 @@ ________________________________________________________________________________
 
 -- Si la billetera no tiene NFTs, cuando le das al boton Mis NFts, que te salga un mensaje informando de que aun no has minteado ningun NFT
 
+-- Cuando cambie la wallet que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anteior)
+
 ___________________________________________________________________________________________________________________________________________
 
 Seguir por aqui!!!
-
-
-Cuando abro la aplicacion al dia siguiente los NFTs listados no aparecen en el Marketplace global. Mirando mis nfts si que aparecen y como listados.
 
 Añadir estao de carga por tokenId (txloading) para que el boton comprar se deshabilite mientras se procesa la compra del NFT
 

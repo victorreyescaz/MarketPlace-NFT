@@ -10,7 +10,7 @@ import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } f
 
 import NFT_ABI from "./abis/NFT.json";
 import MARKET_ABI from "./abis/Marketplace.json";
-import { error } from "console";
+
 
 // Sustituto del Divider ya que tenemos problemas para importarlo
 
@@ -139,6 +139,68 @@ async function uploadJSONToPinata(json) {
   const data = await res.json();
   return `ipfs://${data.IpfsHash}`;
 }
+
+/* === Funcion para que aparezcan todos los NFTs listados en el MarketPlace Global sin importar el tiempo que haya pasado, al ir por bloques tendremos que ir cargando mas paginas de NFts hasta llegar a los bloques donde se mintearon estos === */
+
+// Escaneo on-chain: recorre hasta `maxScan` tokens y añade los que estén listados hoy
+async function scanCollectionListings(nft, market, maxScan = 200) {
+  const items = [];
+  try {
+    const total = Number(await withRetry(() => nft.totalSupply()));
+    const count = Math.min(total, maxScan);
+
+    for (let i = 0; i < count; i++) {
+      try {
+        const tokenId = await withRetry(() => nft.tokenByIndex(i));
+        const listing = await withRetry(() => market.getListing(NFT_ADDRESS, tokenId));
+        if (listing.price > 0n) {
+          let uri = await withRetry(() => nft.tokenURI(tokenId));
+          if (uri.startsWith("ipfs://")) uri = uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+          const meta = await withRetry(() => fetch(uri).then(r => r.json()));
+          let img = meta.image;
+          if (img?.startsWith("ipfs://")) img = img.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
+          items.push({
+            tokenId: tokenId.toString(),
+            name: meta.name,
+            description: meta.description,
+            image: img,
+            seller: listing.seller,
+            priceEth: formatEther(listing.price),
+            blockNumber: 0 // no lo conocemos aquí; lo rellenarán los eventos si aparece
+          });
+        }
+      } catch (e) {
+        console.warn("[scan] index", i, "falló:", e?.message || e);
+      }
+    }
+  } catch (e) {
+    console.warn("[scan] totalSupply/tokenByIndex no disponible:", e?.message || e);
+  }
+  return items;
+}
+
+
+// ======== Helpers loadAllListings ========
+
+const makeKey = (it) => `${it.tokenId}-${(it.seller || "").toLowerCase()}`;
+
+function sortListings(a, b) {
+  const ba = a.blockNumber ?? 0, bb = b.blockNumber ?? 0;
+  if (bb !== ba) return bb - ba;
+  return Number(b.tokenId || 0) - Number(a.tokenId || 0);
+}
+
+// fusión incremental en estado
+function mergeBatchIntoState(batch) {
+  if (!batch?.length) return;
+  setAllListings(prev => {
+    const map = new Map(prev.map(x => [makeKey(x), x]));
+    for (const it of batch) map.set(makeKey(it), it);
+    return Array.from(map.values()).sort(sortListings);
+  });
+}
+
+
 
 /* ================= Componente ================= */
 
@@ -517,8 +579,6 @@ async function confirmPrice(priceStr) {
         return;
       }
 
-      for (let i = 0; i < balance; i++) console.log("checking index:", i);
-
       // tokenIds: secuencial + retry (para evitar rate limits)
       const tokenIds = [];
       for (let i = 0; i < balance; i++) {
@@ -589,7 +649,7 @@ async function confirmPrice(priceStr) {
 
 
 // Cargar Marketplace Global con paginación por bloques
-const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
+  const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
   if (loadingGlobal) return;
 
   try {
@@ -597,12 +657,23 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
     setLoadingGlobal(true);
 
     const provider = await getReadProvider(walletProvider);
-    const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
-    const nft    = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
+    const market   = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
+    const nft      = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
 
-    // fusionar sin duplicados por tokenId
-    const base = reset ? [] : allListings;
-    const map  = new Map(base.map(it => [it.tokenId, it]));
+    // --- semilla del map con el estado actual (no perder lo que ya hay pintado) ---
+    const map = new Map((reset ? [] : allListings).map(it => [makeKey(it), it]));
+
+    // --- WARM START: si reset, poblar con estado on-chain actual y pintar ya ---
+    if (reset) {
+      const scanned = await scanCollectionListings(nft, market, /*maxScan*/ 200);
+      if (scanned.length > 0) {
+        for (const s of scanned) map.set(makeKey(s), { ...s, blockNumber: s.blockNumber ?? 0 });
+        // pinta inmediatamente lo escaneado
+        setAllListings(Array.from(map.values()).sort(sortListings));
+      } else {
+        showInfo("Escaneando listado actual…");
+      }
+    }
 
     let collected = 0;
     let pages     = 0;
@@ -612,22 +683,23 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
     let done = false;
 
     while (pages < GLOBAL_MAX_PAGES && collected < target && !done) {
-      const fromDesired = Math.max(MARKET_DEPLOY_BLOCK, to - BLOCK_PAGE);
+      // ventana inclusiva: to, to-1, ..., from
+      const fromDesired = Math.max(MARKET_DEPLOY_BLOCK, to - (BLOCK_PAGE - 1));
 
       // SOLO ItemListed (tu helper con backoff)
       const { logs: listedLogs, usedFrom } =
         await fetchListedRange(market, fromDesired, to);
 
-      let addedThisPage = 0;
-
+      const pageBatch = []; // items válidos de esta página
       for (const log of listedLogs) {
         const { nft: nftAddr, tokenId, seller } = log.args;
-        const blockNumber = log.blockNumber; // para ordenar por recientes
+        const blockNumber = log.blockNumber;
 
+        if (nftAddr.toLowerCase() !== NFT_ADDRESS) continue;
 
-        if (nftAddr.toLowerCase() !== NFT_ADDRESS) continue;  // quitar si usamos multi-colección
-        const key = tokenId.toString();
-        if (map.has(key)) continue;
+        // clave estable por token + seller (puede relistarse a otro seller en el futuro)
+        const keyPreview = makeKey({ tokenId: tokenId.toString(), seller });
+        if (map.has(keyPreview)) continue;
 
         try {
           const listing = await withRetry(() => market.getListing(NFT_ADDRESS, tokenId));
@@ -638,41 +710,50 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
             let img = meta.image;
             if (img?.startsWith("ipfs://")) img = img.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
 
-            map.set(key, {
-              tokenId: key,
+            const sellerLower = (listing.seller || seller || "").toLowerCase();
+            const item = {
+              tokenId: tokenId.toString(),
               name: meta.name,
               description: meta.description,
               image: img,
-              seller,
+              seller: sellerLower,
               priceEth: formatEther(listing.price),
               blockNumber,
-            });
-            addedThisPage++;
+            };
+
+            // añade al map y a batch (para pintar incremental)
+            map.set(makeKey(item), item);
+            pageBatch.push(item);
           }
         } catch (e) {
-          console.warn("[Global] no resolví tokenId=", key, e?.message || e);
+          console.warn("[Global] no resolví tokenId=", tokenId?.toString?.(), e?.message || e);
         }
       }
 
-      collected += addedThisPage;
+      // pinta incrementalmente lo reunido en esta página (evita “desapariciones”)
+      if (pageBatch.length) mergeBatchIntoState(pageBatch);
+
+      collected += pageBatch.length;
       done = (usedFrom <= MARKET_DEPLOY_BLOCK);
       to   = usedFrom - 1;   // movemos ventana hacia atrás
       pages++;
 
       if (!done && (collected < target) && pages < GLOBAL_MAX_PAGES) {
-        await sleep(PAGE_DELAY_MS); // respiro para no 429
+        await sleep(PAGE_DELAY_MS); // respiro para 429
       }
     }
 
-    setAllListings(Array.from(map.values()));
+    // asegurar estado final alineado con map (por si no hubo batches)
+    setAllListings(Array.from(map.values()).sort(sortListings));
     setGlobalCursor({ nextTo: to, done });
   } catch (err) {
-    showError(err, "Error cargando el Marketplace Global")
+    showError(err, "Error cargando el Marketplace Global");
   } finally {
     setLoadingGlobal(false);
     await sleep(PAGE_DELAY_MS); // pausa cortesía entre clics
   }
 };
+
 
 /* ================= Lista derivada con filtros y ordenacion ================= */
 
