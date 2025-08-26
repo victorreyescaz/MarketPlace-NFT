@@ -20,11 +20,11 @@ const DividerLine = (props) => (
 
 /* ================= Direcciones y ABIs ================= */
 
-const NFT_ADDRESS    = "0xe23fcfa688bd1ff6d0f31bac7cd7d4965d0c285e";// en minúsculas
-const MARKET_ADDRESS = "0x47576a1704597adf6bf9268f1125388748908a2a";// en minúsculas
+const NFT_ADDRESS    = "0xe23fcfa688bd1ff6d0f31bac7cd7d4965d0c285e";// en minúsculas para evitar error checksum
+const MARKET_ADDRESS = "0x47576a1704597adf6bf9268f1125388748908a2a";// en minúsculas para evitar error checksum
 
 // Si en el JSON hay solo el array => úsalo directo; si es artifact completo => usa .abi
-const NFT_IFACE    = Array.isArray(NFT_ABI) ? NFT_ABI : NFT_ABI.abi;
+const NFT_IFACE = Array.isArray(NFT_ABI) ? NFT_ABI : NFT_ABI.abi;
 const MARKET_IFACE = Array.isArray(MARKET_ABI) ? MARKET_ABI : MARKET_ABI.abi;
 
 

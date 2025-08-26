@@ -25,8 +25,8 @@ IMPORTANTE: Si hacemos algun cambio en NFT.sol para implementar nuevas funciones
 
 Creamos el contrato Marketplace.sol con la logica del marketplace, para poder comprar, vender, cambiar precio, recoger ganancias...
 
-Lo desplegamos con en sepolia con deployMarketplace.js
+Lo desplegamos en sepolia con deployMarketplace.js
 
-Actualizamos el contract.js con la direccion del contrato Marketplace desplegado en Sepolia.
+Actualizamos el utils/contract.js con la direccion del contrato Marketplace desplegado en Sepolia.
 
 Crear el abi de Marketplace como hemos hecho con el de NFT, en artifacts y nombre del contrato nos llevamos todo lo que esta dentro del abi a un json 

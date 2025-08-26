@@ -30,6 +30,8 @@ ________________________________________________________________________________
 
 -- Cuando cambie la wallet que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anteior)
 
+-- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda
+
 ___________________________________________________________________________________________________________________________________________
 
 Seguir por aqui!!!
