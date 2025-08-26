@@ -10,6 +10,7 @@ import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } f
 
 import NFT_ABI from "./abis/NFT.json";
 import MARKET_ABI from "./abis/Marketplace.json";
+import { error } from "console";
 
 // Sustituto del Divider ya que tenemos problemas para importarlo
 
@@ -44,9 +45,6 @@ const GLOBAL_BATCH_TARGET = 10;  // Nfts que se cargan por pagina
 const GLOBAL_MAX_PAGES    = 6;   // seguridad para no abusar del RPC
 
 
-
-
-
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 async function withRetry(fn, { attempts = MAX_RETRIES, delayMs = 250 } = {}) {
@@ -66,7 +64,7 @@ async function getReadProvider(walletProvider) {
   if (READ_RPC) {
     const p = new JsonRpcProvider(READ_RPC);
     try {
-      await p.getNetwork();          // valida que el RPC responde
+      await p.getNetwork();// valida que el RPC responde
       _cachedReader = p;
       return p;
     } catch (e) {
@@ -189,6 +187,37 @@ function App() {
   const [sort, setSort] = useState("recent"); // recent | price-asc | price-desc
 
 
+  //   ===== Feedback visible de errores para el usuario ===== 
+
+      // Mensajes UX
+    const [uiError, setUiError] = useState(null);   // string | null
+    const [uiInfo,  setUiInfo]  = useState(null);   // string | null
+
+    // Normaliza/extrae motivo de un error de fetch/ethers
+    function errMsg(e, fallback = "Ha ocurrido un error") {
+      return (
+        e?.shortMessage ||
+        e?.reason ||
+        e?.info?.error?.message ||
+        e?.error?.message ||
+        e?.message ||
+        fallback
+      );
+    }
+
+    // Helpers para mostrar mensajes
+    function showError(eOrMsg, fallback) {
+      const msg = typeof eOrMsg === "string" ? eOrMsg : errMsg(eOrMsg, fallback);
+      console.error("[UI Error]", msg, eOrMsg);
+      setUiError(msg);
+    }
+    function showInfo(message, autoCloseMs = 3500) {
+      setUiInfo(message);
+      if (autoCloseMs) setTimeout(() => setUiInfo(null), autoCloseMs);
+    }
+
+    // -----------------------------------------------------------------------
+
   function openListModal(tokenId) {
   setPriceModal({ isOpen: true, mode: "list", tokenId, defaultPrice: "0.01" });
   }
@@ -299,7 +328,7 @@ async function confirmPrice(priceStr) {
   async function buyToken(tokenId, priceEth, sellerFromCard) {
   try {
     if (!walletProvider) {
-      alert("Conecta tu wallet");
+      showError("Conecta tu wallet");
       return;
     }
 
@@ -308,7 +337,7 @@ async function confirmPrice(priceStr) {
 
     // Guardia rápida si la card ya trae el seller (Marketplace Global)
     if (sellerFromCard && sellerFromCard.toLowerCase() === me) {
-      alert("No puedes comprar tu propio NFT");
+      showError("No puedes comprar tu propio NFT");
       return;
     }
 
@@ -322,11 +351,11 @@ async function confirmPrice(priceStr) {
     const onChainPrice = listing.price; // BigInt
 
     if (onChainPrice === 0n) {
-      alert("Este NFT ya no está listado.");
+      showError("Este NFT ya no está listado.");
       return;
     }
     if (seller === me) {
-      alert("No puedes comprar tu propio NFT");
+      showError("No puedes comprar tu propio NFT");
       return;
     }
 
@@ -341,21 +370,25 @@ async function confirmPrice(priceStr) {
 
     // Simulación + estimación gas (con mensajes claros si va a fallar)
     try {
+      showInfo("Simulando compra...");
       await marketW.buyItem.staticCall(NFT_ADDRESS, tokenId, { value });
     } catch (e) {
       console.error("staticCall buyItem falló:", e);
       const msg = e?.shortMessage || e?.reason || e?.message || e;
-      alert("La compra fallará (simulación): " + msg);
+      showError(e, "La compra fallará (simulación): " + msg);
       return;
     }
 
     const gas = await marketW.buyItem.estimateGas(NFT_ADDRESS, tokenId, { value });
     const gasLimit = (gas * 120n) / 100n;
 
+    showInfo("Enviando transacción de compra");
     const tx = await marketW.buyItem(NFT_ADDRESS, tokenId, { value, gasLimit });
+
+    showInfo("Procesando en la red...");
     await tx.wait();
 
-    alert("✅ NFT comprado");
+    showInfo("✅ NFT comprado", 3000);
     // refresca tus datos
     await loadMyNFTs();
     // si estás en global, recarga listados por si se agotó
@@ -363,10 +396,11 @@ async function confirmPrice(priceStr) {
   } catch (err) {
     console.error(err);
     const msg = err?.shortMessage || err?.reason || err?.message || String(err);
-    alert("❌ Error al comprar: " + msg);
+    showError(err, "❌ Error al comprar: " + msg);
   }
 }
 
+// ==================================================================================================
 
   async function refreshProceeds() {
     try {
@@ -394,30 +428,37 @@ async function confirmPrice(priceStr) {
   /* ================= Mint ================= */
 
   const handleMint = async () => {
-    if (!isConnected) return open({ view: "Connect", namespace: "eip155" });
-    if (!walletProvider) return alert("No hay wallet provider");
-    if (!file || !name) return alert("Falta imagen y/o nombre");
+  if (!isConnected) return open({ view: "Connect", namespace: "eip155" });
+  if (!walletProvider) return showError("No hay wallet provider");
+  if (!file || !name)   return showError("Falta imagen y/o nombre");
 
-    try {
-      setBusy(true);
+  try {
+    setBusy(true);
+    showInfo("Subiendo a IPFS...");
+    const imageURI = await uploadFileToPinata(file);
 
-      const imageURI = await uploadFileToPinata(file);
-      const tokenURI = await uploadJSONToPinata({ name, description: desc || "", image: imageURI });
+    showInfo("Creando metadata...");
+    const tokenURI = await uploadJSONToPinata({
+      name, description: desc || "", image: imageURI
+    });
 
-      const signer = await getSigner();
-      const contract = new Contract(NFT_ADDRESS, NFT_IFACE, signer);
-      const tx = await contract.mint(tokenURI);
-      await tx.wait();
+    showInfo("Firmando transacción de mint...");
+    const provider = new BrowserProvider(walletProvider);
+    const signer   = await provider.getSigner();
+    const contract = new Contract(NFT_ADDRESS, ABI, signer);
 
-      alert("✅ NFT subido a IPFS y minteado con éxito");
-      setName(""); setDesc(""); setFile(null);
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error: " + (err?.message || err));
-    } finally {
-      setBusy(false);
-    }
-  };
+    const tx = await contract.mint(tokenURI);
+    await tx.wait();
+
+    showInfo("✅ NFT minteado con éxito");
+    setName(""); setDesc(""); setFile(null);
+  } catch (e) {
+    showError(e, "No se pudo mintear el NFT");
+  } finally {
+    setBusy(false);
+  }
+};
+
 
   /* ================= Carga de NFTs ================= */
 
@@ -537,8 +578,7 @@ async function confirmPrice(priceStr) {
         console.warn("getProceeds falló (sin bloquear la UI):", e);
       }
     } catch (err) {
-      console.error(err);
-      alert("Error cargando NFTs");
+      showError(error, "Error cargando tus NFTs");
     } finally {
       setLoadingNFTs(false);
     }
@@ -627,8 +667,7 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
     setAllListings(Array.from(map.values()));
     setGlobalCursor({ nextTo: to, done });
   } catch (err) {
-    console.error("loadAllListings:", err);
-    alert("Error cargando Marketplace Global");
+    showError(err, "Error cargando el Marketplace Global")
   } finally {
     setLoadingGlobal(false);
     await sleep(PAGE_DELAY_MS); // pausa cortesía entre clics
@@ -648,10 +687,10 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
     const needle = raw.toLowerCase();
 
     if (digitsOnly) {
-      // 👉 si es solo números, busca por tokenId exacto
+      // Si es solo números, busca por tokenId exacto
       arr = arr.filter(it => String(it.tokenId ?? "") === raw);
     } else if (digitsFromRaw) {
-      // si tiene números con prefijo (#6, id:6), también filtra por tokenId
+      // Si tiene números con prefijo (#6, id:6), también filtra por tokenId
       arr = arr.filter(it => {
         const tokenStr = String(it.tokenId ?? "");
         const inId = tokenStr === digitsFromRaw;
@@ -712,6 +751,46 @@ const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
 return (
   <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
     <Heading textAlign="center">NFT Marketplace</Heading>
+
+        {/* Mensajes UX , feedback visible para el usuario*/}
+    {uiError && (
+      <Box
+        borderWidth="1px"
+        borderColor="red.400"
+        bg="red.500"
+        color="white"
+        p="3"
+        borderRadius="md"
+      >
+        <HStack justify="space-between" align="start">
+          <Text fontWeight="semibold">⚠️ {uiError}</Text>
+          <Button size="xs" variant="outline" onClick={() => setUiError(null)}>
+            Cerrar
+          </Button>
+        </HStack>
+      </Box>
+    )}
+
+    {uiInfo && (
+      <Box
+        borderWidth="1px"
+        borderColor="blue.400"
+        bg="blue.500"
+        color="white"
+        p="3"
+        borderRadius="md"
+      >
+        <HStack justify="space-between" align="start">
+          <Text>ℹ️ {uiInfo}</Text>
+          <Button size="xs" variant="outline" onClick={() => setUiInfo(null)}>
+            Cerrar
+          </Button>
+        </HStack>
+      </Box>
+    )}
+
+    {/* ===================================================================================== */}
+
 
     {!isConnected ? (
       <Button onClick={() => open({ view: "Connect", namespace: "eip155" })} colorScheme="teal">

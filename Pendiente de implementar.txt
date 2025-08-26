@@ -10,15 +10,11 @@ Guardar estado isSepolia para deshabilitar botones y mostrar advertencias.
 
 Código listo:
 
-La utilidad ensureSepolia(walletProvider) que ya te pasé.
-
-Incluir la llamada en handleMint y loadMyNFTs.
-
 Opcional: deshabilitar botones si no es Sepolia.
 
-Objetivo:
-
 Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en otra red.
+
+___________________________________________________________________________________________________________________________________________
 
 --- Cuando se cargue el Marketplace quiero que aparezcan los NFTs a la venta, que no tengas que darle al boton Ver Marketplace global
 
@@ -30,18 +26,16 @@ Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en ot
 
 --- Hacer un archivo HTML con el esquema de la web?
 
+-- Si la billetera no tiene NFTs, cuando le das al boton Mis NFts, que te salga un mensaje informando de que aun no has minteado ningun NFT
+
+___________________________________________________________________________________________________________________________________________
+
+Seguir por aqui!!!
 
 
+Cuando abro la aplicacion al dia siguiente los NFTs listados no aparecen en el Marketplace global. Mirando mis nfts si que aparecen y como listados.
 
-
-
-
-
-
-
-Ordenación / filtrado: poder mostrar primero los más recientes, los más baratos, o buscar por nombre/tokenID.
-
-Manejo de errores UX: si falla un fetch, mostrar un mensaje en la UI (no solo en consola).
+Añadir estao de carga por tokenId (txloading) para que el boton comprar se deshabilite mientras se procesa la compra del NFT
 
 Indicadores de carga: spinner o skeletons mientras se cargan NFTs.
 
