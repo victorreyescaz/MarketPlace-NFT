@@ -32,6 +32,11 @@ ________________________________________________________________________________
 
 -- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda
 
+-- Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.
+
+
+
+
 ___________________________________________________________________________________________________________________________________________
 
 Seguir por aqui!!!
