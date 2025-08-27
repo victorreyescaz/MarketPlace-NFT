@@ -1,18 +1,24 @@
 const { ethers } = require("hardhat");
 
 async function main() {
+  // Pide a Hardhat la lista de signers disponibles, el primero que encuentra sera el deployer en la red actual (Sepolia). En hardhat.config.cjs esta configurada mi wallet asi que sera el deployer
   const [deployer] = await ethers.getSigners();
 
   console.log("🚀 Deploying contract with account:", deployer.address);
 
+  // Factory es un objeto de JS que representa la receta("plantilla") de despliegue dell contrato, incluye ABI, bytecode y Signer
   const NFT = await ethers.getContractFactory("NFT");
+
+  // Pasa el deployer.address al contstructor de NFT.sol
   const nft = await NFT.deploy(deployer.address);
 
-  await nft.waitForDeployment(); // Necesario en versiones nuevas de Hardhat
+  // Espera a que la tx de deploy sea minada y el contrato quede listo on-chain.Necesario waitForDeployment() en versiones nuevas de Hardhat
+  await nft.waitForDeployment();
 
   console.log("✅ Contract deployed at:", await nft.getAddress());
 }
 
+// Ejecutamos main() y capturamos errores
 main().catch((error) => {
   console.error("❌ Deployment failed:", error);
   process.exitCode = 1;
