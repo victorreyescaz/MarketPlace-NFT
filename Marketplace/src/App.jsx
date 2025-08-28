@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 import {
 Button, VStack, Text, Heading, Input, Textarea, HStack,
@@ -239,8 +239,91 @@ function App() {
   });
 
   // loading por NFT (mapa por tokenId)
-  const [txLoading, setTxLoading] = useState({});
-  const setTokenLoading = (id, v) => setTxLoading(prev => ({ ...prev, [id]: v }));
+  const [txLoading, setTxLoading] = useState({}); // { [key: string]: boolean }
+
+  // Helpers de clave
+  const kBuy    = (id) => `buy:${String(id)}`;
+  const kCancel = (id) => `cancel:${id}`;
+  const kList   = (id) => `list:${id}`;
+  const kUpdate = (id) => `update:${id}`;
+
+  // Setter genérico
+  function setLoading(key, value) {
+    setTxLoading(prev => ({ ...prev, [key]: !!value }));
+  }
+
+  // ¿Algún botón de este token está ocupado?
+  function isTokenBusy(id) {
+    const suffix = `:${String(id)}`;
+    if (busyRef.current[kBuy(String(id))]) return true; // ← refleja el lock inmediato
+    
+    for (const k in txLoading) {
+      if (k.endsWith(suffix) && txLoading[k]) return true;
+    }
+    return false;
+  }
+
+  // Normalizar la clave, por si el tokenId viene como BigInt/number/string
+  const keyFor = (id) => `buy:${String(id)}`;
+
+  // Candado inmediato
+  const busyRef = useRef({});
+
+  // 
+  const inFlight = React.useRef(new Set()); // Set<string>
+
+  // Wrapper genérico para clicks con lock + loading por clave
+
+const runWithLock = async (keyIn, event, fn) => {
+  const key = String(keyIn ?? "");
+  const btn = event?.currentTarget;
+
+  try {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+
+    // si ya hay operación en curso para este key, ignorar
+    if (busyRef.current[key]) {
+      btn?.blur?.();
+      console.info("[lock] ignored (already busy):", key);
+      return false;
+    }
+
+    // bloqueo instantáneo (DOM) + estado de loading
+    busyRef.current[key] = true;
+    if (btn) btn.disabled = true;           // ⬅️ bloqueo inmediato del botón
+    setLoading(key, true);
+
+    console.info("[lock] start:", key);
+    await fn(); // aquí se abre MetaMask y esperamos
+    console.info("[lock] done:", key);
+    return true;
+
+  } catch (e) {
+    const code = e?.code ?? e?.error?.code;
+    const msg  = (e?.message || e?.error?.message || "").toLowerCase();
+    console.warn("[lock] error:", key, code, msg);
+
+    if (code === 4001 || msg.includes("user rejected")) {
+      showInfo("Operación cancelada por el usuario");
+    } else {
+      showError(e, "Ha fallado la operación");
+    }
+    return false;
+
+  } finally {
+    // liberar SIEMPRE
+    setLoading(key, false);
+    busyRef.current[key] = false;
+    if (btn) btn.disabled = false;          // ⬅️ re-habilitar al cancelar/fallar/terminar
+    btn?.blur?.();
+    console.info("[lock] release:", key);
+  }
+};
+
+
+
+
 
   // Controles de filtro/ordenación del Marketplace Global
   const [q, setQ] = useState("");            // búsqueda (nombre/desc/token/seller)
@@ -248,12 +331,20 @@ function App() {
   const [maxP, setMaxP] = useState("");      // precio máximo (ETH)
   const [sort, setSort] = useState("recent"); // recent | price-asc | price-desc
 
-
   //   ===== Feedback visible de errores para el usuario ===== 
 
       // Mensajes UX
     const [uiError, setUiError] = useState(null);   // string | null
     const [uiInfo,  setUiInfo]  = useState(null);   // string | null
+
+
+  // loading por tokenId (compra)
+  const [txLoadingBuy, setTxLoadingBuy] = useState({}); // { [tokenId: string]: boolean }
+
+  function setTokenLoadingBuy(tokenId, value) {
+    setTxLoadingBuy(prev => ({ ...prev, [String(tokenId)]: !!value }));
+}
+
 
     // Normaliza/extrae motivo de un error de fetch/ethers
     function errMsg(e, fallback = "Ha ocurrido un error") {
@@ -290,31 +381,34 @@ function App() {
     setPriceModal(p => ({ ...p, isOpen: false }));
   }
 
-async function confirmPrice(priceStr) {
-  try {
-    if (!priceStr || Number(priceStr) <= 0) {
-      alert("Introduce un precio > 0");
-      return;
-    }
-    const { mode, tokenId } = priceModal;
-    setTokenLoading(tokenId, true);
+  async function confirmPrice(priceStr) {
+    try {
+      if (!priceStr || Number(priceStr) <= 0) {
+        alert("Introduce un precio > 0");
+        return;
+      }
+      const { mode, tokenId } = priceModal;
+      const key = mode === "list" ? kList(tokenId) : kUpdate(tokenId);
 
-    if (mode === "list") {
-      // evita listar tu propio NFT si ya está listado
-      const my = myNFTs.find(n => n.tokenId === tokenId);
-      if (my?.listed) { alert("Este NFT ya está listado"); return; }
-      await listToken(tokenId, priceStr);
-    } else {
-      await updateListing(tokenId, priceStr);
+      setLoading(key, true);
+
+      if (mode === "list") {
+        const my = myNFTs.find(n => n.tokenId === tokenId);
+        if (my?.listed) { alert("Este NFT ya está listado"); return; }
+        await listToken(tokenId, priceStr);
+      } else {
+        await updateListing(tokenId, priceStr);
+      }
+      closePriceModal();
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Error al confirmar precio");
+    } finally {
+      const { mode, tokenId } = priceModal;
+      const key = mode === "list" ? kList(tokenId) : kUpdate(tokenId);
+      setLoading(key, false);
     }
-    closePriceModal();
-  } catch (e) {
-    console.error(e);
-    alert(e?.message || "Error al confirmar precio");
-  } finally {
-    setTokenLoading(priceModal.tokenId, false);
   }
-}
 
   /* ========= Firmas / contratos + acciones Marketplace ========= */
 
@@ -387,80 +481,49 @@ async function confirmPrice(priceStr) {
     await loadMyNFTs();
   }
 
-  async function buyToken(tokenId, priceEth, sellerFromCard) {
+
+async function buyToken(tokenId, priceEth, sellerFromCard) {
   try {
-    if (!walletProvider) {
-      showError("Conecta tu wallet");
-      return;
-    }
+    if (!walletProvider) { showError("Conecta tu wallet"); return; }
 
-    // Tu address
-    const me = address?.toLowerCase?.();
-
-    // Guardia rápida si la card ya trae el seller (Marketplace Global)
+    const me = (address || "").toLowerCase();
     if (sellerFromCard && sellerFromCard.toLowerCase() === me) {
       showError("No puedes comprar tu propio NFT");
       return;
     }
 
-    // Provider de lectura y contrato (lectura)
     const readProv = await getReadProvider(walletProvider);
     const marketR  = new Contract(MARKET_ADDRESS, MARKET_IFACE, readProv);
+    const listing  = await marketR.getListing(NFT_ADDRESS, tokenId);
+    const seller   = (listing.seller || "").toLowerCase();
 
-    // Consulta on-chain del listing
-    const listing = await marketR.getListing(NFT_ADDRESS, tokenId);
-    const seller  = listing.seller?.toLowerCase?.() || "";
-    const onChainPrice = listing.price; // BigInt
+    if (listing.price === 0n) { showError("Este NFT ya no está listado."); return; }
+    if (seller === me)        { showError("No puedes comprar tu propio NFT"); return; }
 
-    if (onChainPrice === 0n) {
-      showError("Este NFT ya no está listado.");
-      return;
-    }
-    if (seller === me) {
-      showError("No puedes comprar tu propio NFT");
-      return;
-    }
-
-    // value a enviar (usa el precio on-chain por seguridad)
-    const value = onChainPrice; // o parseEther(String(priceEth)) si quieres mantener el de UI
-    // Nota: si quieres validar que priceEth coincide:
-    // if (parseEther(String(priceEth)) < onChainPrice) { alert("El precio ha cambiado, recarga."); return; }
-
-    // Signer y contrato (escritura)
+    const value   = listing.price;
     const signer  = await getSigner();
     const marketW = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
 
-    // Simulación + estimación gas (con mensajes claros si va a fallar)
-    try {
-      showInfo("Simulando compra...");
-      await marketW.buyItem.staticCall(NFT_ADDRESS, tokenId, { value });
-    } catch (e) {
-      console.error("staticCall buyItem falló:", e);
-      const msg = e?.shortMessage || e?.reason || e?.message || e;
-      showError(e, "La compra fallará (simulación): " + msg);
-      return;
-    }
+    showInfo("Simulando compra…");
+    await marketW.buyItem.staticCall(NFT_ADDRESS, tokenId, { value });
 
     const gas = await marketW.buyItem.estimateGas(NFT_ADDRESS, tokenId, { value });
     const gasLimit = (gas * 120n) / 100n;
 
-    showInfo("Enviando transacción de compra");
+    showInfo("Enviando transacción…");
     const tx = await marketW.buyItem(NFT_ADDRESS, tokenId, { value, gasLimit });
 
-    showInfo("Procesando en la red...");
+    showInfo("Procesando en la red…");
     await tx.wait();
 
     showInfo("✅ NFT comprado", 3000);
-    // refresca tus datos
     await loadMyNFTs();
-    // si estás en global, recarga listados por si se agotó
-    // await loadAllListings(true);
   } catch (err) {
-    console.error(err);
-    const msg = err?.shortMessage || err?.reason || err?.message || String(err);
-    showError(err, "❌ Error al comprar: " + msg);
+    showError(err, "❌ Error al comprar");
   }
 }
+
+
 
 // ==================================================================================================
 
@@ -944,43 +1007,35 @@ return (
                   {nft.listed ? (
                     <>
                       <Text>💰 {nft.priceEth} ETH</Text>
-                      {iAmOwner ? (
-                        <HStack>
-                          <Button
-                            size="sm"
-                            isLoading={!!txLoading[nft.tokenId]}
-                            onClick={() => {
-                              setTokenLoading(nft.tokenId, true);
-                              cancelListing(nft.tokenId).finally(() => setTokenLoading(nft.tokenId, false));
-                            }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => openUpdateModal(nft.tokenId, nft.priceEth)}
-                          >
-                            Cambiar precio
-                          </Button>
-                        </HStack>
-                      ) : (
+                     {iAmOwner && (
+                      <HStack>
                         <Button
                           size="sm"
-                          colorScheme="green"
-                          isLoading={!!txLoading[nft.tokenId]}
-                          onClick={() => {
-                            setTokenLoading(nft.tokenId, true);
-                            buyToken(nft.tokenId, nft.priceEth, nft.seller).finally(() => setTokenLoading(nft.tokenId, false));
+                          isLoading={!!txLoading[kCancel(nft.tokenId)]}
+                          isDisabled={isTokenBusy(nft.tokenId)}
+                          onClick={async () => {
+                            const key = kCancel(nft.tokenId);
+                            setLoading(key, true);
+                            try { await cancelListing(nft.tokenId); }
+                            finally { setLoading(key, false); }
                           }}
                         >
-                          Comprar
+                          Cancelar
                         </Button>
-                      )}
+                        <Button
+                          size="sm"
+                          onClick={() => openUpdateModal(nft.tokenId, nft.priceEth)}
+                        >
+                          Cambiar precio
+                        </Button>
+                      </HStack>
+                    )}
                     </>
                   ) : (
                     iAmOwner && (
                       <Button
                         size="sm"
+                        isDisabled={isTokenBusy(nft.tokenId)}
                         onClick={() => openListModal(nft.tokenId)}
                       >
                         Listar
@@ -1058,38 +1113,50 @@ return (
     {/* Lista o estado vacío */}
     {filteredGlobal.length > 0 ? (
       <SimpleGrid columns={[1, 2, 3]} spacing={5}>
-        {filteredGlobal.map((nft) => (
-          <Box
-            key={`${nft.tokenId}-${nft.seller}`}
-            borderWidth="1px"
-            borderRadius="lg"
-            overflow="hidden"
-            p="3"
-          >
-            <Image src={nft.image} alt={nft.name} />
-            <Heading size="md" mt="2">{nft.name}</Heading>
-            <Text fontSize="sm" color="gray.600">{nft.description}</Text>
-            <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
-            <Text>
-              Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}
-            </Text>
-            <Text mt="1">💰 {nft.priceEth} ETH</Text>
-            <Button
-              size="sm"
-              colorScheme="green"
-              mt="2"
-              isLoading={!!txLoading[nft.tokenId]}
-              onClick={() => {
-                setTokenLoading(nft.tokenId, true);
-                buyToken(nft.tokenId, nft.priceEth).finally(() =>
-                  setTokenLoading(nft.tokenId, false)
-                );
-              }}
+        {filteredGlobal.map((nft) => {
+          const me = address?.toLowerCase?.() || "";
+          const cantBuy = (nft.seller || "").toLowerCase() === me; // es mi propio listado
+
+          return (
+            <Box
+              key={`${nft.tokenId}-${nft.seller}`}
+              borderWidth="1px"
+              borderRadius="lg"
+              overflow="hidden"
+              p="3"
             >
-              Comprar
-            </Button>
-          </Box>
-        ))}
+              <Image src={nft.image} alt={nft.name} />
+              <Heading size="md" mt="2">{nft.name}</Heading>
+              <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+              <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+              <Text>
+                Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}
+              </Text>
+              <Text mt="1">💰 {nft.priceEth} ETH</Text>
+
+              <Button
+                size="sm"
+                colorScheme="green"
+                mt="2"
+                isLoading={!!txLoading[kBuy(nft.tokenId)]}
+                isDisabled={cantBuy || isTokenBusy(nft.tokenId)}
+                aria-busy={!!txLoading[kBuy(nft.tokenId)]}
+                style={isTokenBusy(nft.tokenId) ? { pointerEvents: "none" } : undefined}
+                title={cantBuy ? "No puedes comprar tu propio NFT" : undefined}
+                onClick={(e) => {
+                  // usa el candado + tu buyToken
+                  const key = kBuy(nft.tokenId);
+                  runWithLock(key, e, () =>
+                    buyToken(String(nft.tokenId), nft.priceEth, nft.seller)
+                  );
+                }}
+              >
+                {cantBuy ? "Tu NFT" : "Comprar"}
+              </Button>
+            </Box>
+          );
+        })}
+
       </SimpleGrid>
     ) : (
       <Box p="6" borderWidth="1px" borderRadius="md" bg="blackAlpha.200">
@@ -1149,7 +1216,6 @@ return (
     )}
   </VStack>
 );
-
 
 }
 

@@ -28,20 +28,22 @@ ________________________________________________________________________________
 
 -- Si la billetera no tiene NFTs, cuando le das al boton Mis NFts, que te salga un mensaje informando de que aun no has minteado ningun NFT
 
--- Cuando cambie la wallet que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anteior)
+-- Cuando cambie de wallet, que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anteior)
 
 -- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda
 
 -- Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.
+    Implementarla en el frontend para poder quemar tokens
 
+-- Boton actualizar salgo añadir mensaje estilo "Tu saldo ha sido actualizado"
 
+-- Anclar header para que cuando hagas scroll para abajo se mantenga visible (asi podemos ver las alertas)
 
+-- 
 
 ___________________________________________________________________________________________________________________________________________
 
 Seguir por aqui!!!
-
-Añadir estao de carga por tokenId (txloading) para que el boton comprar se deshabilite mientras se procesa la compra del NFT
 
 Indicadores de carga: spinner o skeletons mientras se cargan NFTs.
 
