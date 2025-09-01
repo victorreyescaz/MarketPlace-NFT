@@ -232,6 +232,8 @@ function SkeletonGrid({ count = 6 }) {
   );
 }
 
+
+
 /* ================= Componente ================= */
 
 function App() {
@@ -265,7 +267,8 @@ function App() {
     isOpen: false,
     mode: "list",         // "list" | "update"
     tokenId: null,
-    defaultPrice: ""
+    defaultPrice: "",
+    name: "",
   });
 
   // loading por NFT (mapa por tokenId)
@@ -352,9 +355,6 @@ const runWithLock = async (keyIn, event, fn) => {
 };
 
 
-
-
-
   // Controles de filtro/ordenación del Marketplace Global
   const [q, setQ] = useState("");            // búsqueda (nombre/desc/token/seller)
   const [minP, setMinP] = useState("");      // precio mínimo (ETH)
@@ -399,13 +399,47 @@ const runWithLock = async (keyIn, event, fn) => {
       if (autoCloseMs) setTimeout(() => setUiInfo(null), autoCloseMs);
     }
 
+
+    // Activa/desactiva autoload desde .env si quieres (por defecto: ON)
+    const AUTOLOAD_GLOBAL =
+      (import.meta.env.VITE_AUTOLOAD_GLOBAL ?? "true").toLowerCase() !== "false";
+
+    // Evita doble ejecución en StrictMode
+    const autoLoadRef = React.useRef(false);
+
+    React.useEffect(() => {
+    if (!AUTOLOAD_GLOBAL) return;
+
+    // Si ya hicimos el autoload, no repetir (StrictMode provoca doble render en dev)
+    if (autoLoadRef.current) return;
+
+    // Si no tienes READ_RPC y aún no hay walletProvider, espera a que exista
+    // (con READ_RPC tu getReadProvider ya trabaja sin wallet conectada)
+    if (!READ_RPC && !walletProvider) return;
+
+    autoLoadRef.current = true;
+
+    // Reset de filtros y orden al abrir
+    setQ("");
+    setMinP("");
+    setMaxP("");
+    setSort("recent");
+
+    // Carga inicial del marketplace
+    loadAllListings(true);
+  }, [walletProvider]); // se disparará cuando haya provider disponible
+
+
+
     // -----------------------------------------------------------------------
 
-  function openListModal(tokenId) {
-  setPriceModal({ isOpen: true, mode: "list", tokenId, defaultPrice: "0.01" });
+  function openListModal(tokenId, name) {
+  const fallbackName = myNFTs.find(n=>n.tokenId === String(tokenId))?.name || "";
+  setPriceModal({ isOpen: true, mode: "list", tokenId, defaultPrice: "0.01", name: name ?? fallbackName });
   }
-  function openUpdateModal(tokenId, currentPrice) {
-    setPriceModal({ isOpen: true, mode: "update", tokenId, defaultPrice: String(currentPrice ?? "0.01") });
+  function openUpdateModal(tokenId, currentPrice, name) {
+    const fallbackName = myNFTs.find(n=>n.tokenId === String(tokenId))?.name || "";
+    setPriceModal({ isOpen: true, mode: "update", tokenId, defaultPrice: String(currentPrice ?? "0.01"), name: name ?? fallbackName });
   }
   function closePriceModal() {
     setPriceModal(p => ({ ...p, isOpen: false }));
@@ -1075,7 +1109,7 @@ return (
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => openUpdateModal(nft.tokenId, nft.priceEth)}
+                        onClick={() => openUpdateModal(nft.tokenId, nft.priceEth, nft.name)}
                       >
                         Cambiar precio
                       </Button>
@@ -1087,7 +1121,7 @@ return (
                   <Button
                     size="sm"
                     isDisabled={isTokenBusy(nft.tokenId)}
-                    onClick={() => openListModal(nft.tokenId)}
+                    onClick={() => openListModal(nft.tokenId, nft.name)}
                   >
                     Listar
                   </Button>
@@ -1255,36 +1289,60 @@ return (
 
 
     {/* === Modal de precio inline === */}
-    {priceModal?.isOpen && (
-      <Box position="fixed" inset="0" bg="blackAlpha.500" display="flex" alignItems="center" justifyContent="center" zIndex={1000}>
-        <Box bg="white" p="6" borderRadius="md" minW={["90vw","420px"]}>
-          <Heading size="md" mb="3">{priceModal.mode === "list" ? "Listar NFT" : "Actualizar precio"}</Heading>
-          <Text mb="2">Precio (ETH)</Text>
-          <Input
-            defaultValue={priceModal.defaultPrice}
-            id="__price_input__"
-            type="number"
-            step="0.0001"
-            min="0"
-            bg="gray.700"
-            color="white"
-            _placeholder={{ color: "gray.400" }}
-          />
-          <HStack mt="4" justify="flex-end">
-            <Button variant="ghost" onClick={closePriceModal}>Cancelar</Button>
-            <Button
-              colorScheme="blue"
-              onClick={() => {
-                const val = document.getElementById("__price_input__")?.value;
-                confirmPrice(val);
-              }}
-            >
-              Confirmar
-            </Button>
-          </HStack>
-        </Box>
-      </Box>
-    )}
+{priceModal?.isOpen && (
+  <Box
+    position="fixed"
+    inset="0"
+    bg="blackAlpha.500"
+    display="flex"
+    alignItems="center"
+    justifyContent="center"
+    zIndex={1000}
+  >
+    <Box bg="black" p="6" borderRadius="md" minW={["90vw","420px"]} borderWidth={"1px"} borderColor={"gray.600"} boxShadow={"lg"}>
+      
+      {/* 🔥 Título dinámico */}
+      <Heading size="md" textAlign="center" color="white">
+        {priceModal.mode === "list" ? "📌 Listar NFT" : "✏️ Actualizar precio"}
+      </Heading>
+
+      {/* Nombre del NFT debajo */}
+      {priceModal.name && (
+        <Text mt="1" mb="4" textAlign="center" fontWeight="semibold" color="gray.300">
+          {priceModal.name}
+        </Text>
+      )}
+
+      <Text mb="2">💰 Precio (ETH)</Text>
+      <Input
+        defaultValue={priceModal.defaultPrice}
+        id="__price_input__"
+        type="number"
+        step="0.0001"
+        min="0"
+        bg="gray.700"
+        color="white"
+        _placeholder={{ color: "gray.400" }}
+      />
+
+      <HStack mt="4" justify="flex-end">
+        <Button variant="ghost" onClick={closePriceModal}>
+          Cancelar
+        </Button>
+        <Button
+          colorScheme="blue"
+          onClick={() => {
+            const val = document.getElementById("__price_input__")?.value;
+            confirmPrice(val);
+          }}
+        >
+          Confirmar
+        </Button>
+      </HStack>
+    </Box>
+  </Box>
+)}
+
   </VStack>
 );
 

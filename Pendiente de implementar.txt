@@ -16,17 +16,11 @@ Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en ot
 
 ___________________________________________________________________________________________________________________________________________
 
---- Cuando se cargue el Marketplace quiero que aparezcan los NFTs a la venta, que no tengas que darle al boton Ver Marketplace global
-
---- Introducir un titulo en el modal cuando vamos a listar o cambiar el precio del NFT ya listado
-
 --- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo
 
 --- Poder mintear mas de un NFT a la vez, una coleccion
 
 --- Hacer un archivo HTML con el esquema de la web?
-
--- Si la billetera no tiene NFTs, cuando le das al boton Mis NFts, que te salga un mensaje informando de que aun no has minteado ningun NFT
 
 -- Cuando cambie de wallet, que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anterior)
 
@@ -35,17 +29,17 @@ ________________________________________________________________________________
 -- Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.
     Implementarla en el frontend para poder quemar tokens
 
--- Boton actualizar salgo añadir mensaje estilo "Tu saldo ha sido actualizado"
+-- Boton actualizar saldo añadir mensaje estilo "Tu saldo ha sido actualizado"
 
--- Anclar header para que cuando hagas scroll para abajo se mantenga visible (asi podemos ver las alertas)
+-- Anclar header para que cuando hagas scroll para abajo se mantenga visible (asi podemos ver las alertas y acceder a los botones)
 
 -- Boton connect wallet appkit (es mas bonito e incluso sale el saldo actual de la wallet). Al entrar en la dApp que no te salte el popup de metamask para conectar la wallet, que puedas explorar la dApp sin conectarte
 
+-- Añadir pequeño footer con informacion del creador o lo que se me ocurra
+
+
 ___________________________________________________________________________________________________________________________________________
 
-Seguir por aqui!!!
-
-Indicadores de carga: spinner o skeletons mientras se cargan NFTs.
 
 Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
 
