@@ -5,6 +5,8 @@ Button, VStack, Text, Heading, Input, Textarea, HStack,
 SimpleGrid, Box, Image, Stack
 } from "@chakra-ui/react";
 
+import { Skeleton, SkeletonText, Spinner } from "@chakra-ui/react";
+
 import { useAppKitProvider, useAppKitAccount, useAppKit } from "@reown/appkit/react";
 import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } from "ethers";
 
@@ -200,7 +202,35 @@ function mergeBatchIntoState(batch) {
   });
 }
 
+// ========= Helper indicadores de carga, mientras se cargan los nfts =========
 
+const GLOBAL_SKELETON_COUNT = 6; // nº de tarjetas esqueleto en la primera carga
+
+// Card “placeholder” para una NFT
+function NFTCardSkeleton() {
+  return (
+    <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
+      <Skeleton height="220px" />
+      <Box mt="3">
+        <Skeleton height="20px" width="70%" />
+        <SkeletonText mt="2" noOfLines={2} spacing="2" />
+        <Skeleton mt="2" height="14px" width="40%" />
+        <Skeleton mt="3" height="32px" width="90px" />
+      </Box>
+    </Box>
+  );
+}
+
+// Grid de skeletons para mantener el layout
+function SkeletonGrid({ count = 6 }) {
+  return (
+    <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      {Array.from({ length: count }).map((_, i) => (
+        <NFTCardSkeleton key={i} />
+      ))}
+    </SimpleGrid>
+  );
+}
 
 /* ================= Componente ================= */
 
@@ -570,7 +600,7 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     showInfo("Firmando transacción de mint...");
     const provider = new BrowserProvider(walletProvider);
     const signer   = await provider.getSigner();
-    const contract = new Contract(NFT_ADDRESS, ABI, signer);
+    const contract = new Contract(NFT_ADDRESS, NFT_IFACE, signer);
 
     const tx = await contract.mint(tokenURI);
     await tx.wait();
@@ -974,7 +1004,7 @@ return (
           <Button onClick={() => loadAllListings(false)} isLoading={loadingGlobal} variant="outline">
             Cargar más
           </Button>
-)}
+          )}
         </HStack>
       </VStack>
     )}
@@ -988,65 +1018,100 @@ return (
     </Button>
 
     {/* Galería (Mis NFTs) */}
-    {myNFTs.length > 0 && (
-      <>
-        <DividerLine />
-        <Heading size="lg">Mis NFTs</Heading>
-        <SimpleGrid columns={[1, 2, 3]} spacing={5}>
-          {myNFTs.map((nft) => {
-            const iAmOwner = nft.owner?.toLowerCase() === address?.toLowerCase();
+{/* Mis NFTs – loading → skeletons */}
+{loadingNFTs && myNFTs.length === 0 && (
+  <>
+    <DividerLine />
+    <Heading size="lg">Mis NFTs</Heading>
+    <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Box key={i} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
+          <Skeleton height="220px" />
+          <Box mt="3">
+            <Skeleton height="20px" width="70%" />
+            <SkeletonText mt="2" noOfLines={2} spacing="2" />
+            <Skeleton mt="2" height="14px" width="40%" />
+            <Skeleton mt="3" height="32px" width="90px" />
+          </Box>
+        </Box>
+      ))}
+    </SimpleGrid>
+  </>
+)}
 
-            return (
-              <Box key={nft.tokenId} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
-                <Image src={nft.image} alt={nft.name} />
-                <Heading size="md" mt="2">{nft.name}</Heading>
-                <Text fontSize="sm" color="gray.600">{nft.description}</Text>
-                <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+{/* Mis NFTs – datos */}
+{!loadingNFTs && myNFTs.length > 0 && (
+  <>
+    <DividerLine />
+    <Heading size="lg">Mis NFTs</Heading>
+    <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      {myNFTs.map((nft) => {
+        const iAmOwner = nft.owner?.toLowerCase() === address?.toLowerCase();
+        return (
+          <Box key={nft.tokenId} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
+            <Image src={nft.image} alt={nft.name} />
+            <Heading size="md" mt="2">{nft.name}</Heading>
+            <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+            <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
 
-                <Stack mt="3" spacing={2}>
-                  {nft.listed ? (
-                    <>
-                      <Text>💰 {nft.priceEth} ETH</Text>
-                     {iAmOwner && (
-                      <HStack>
-                        <Button
-                          size="sm"
-                          isLoading={!!txLoading[kCancel(nft.tokenId)]}
-                          isDisabled={isTokenBusy(nft.tokenId)}
-                          onClick={async () => {
-                            const key = kCancel(nft.tokenId);
-                            setLoading(key, true);
-                            try { await cancelListing(nft.tokenId); }
-                            finally { setLoading(key, false); }
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => openUpdateModal(nft.tokenId, nft.priceEth)}
-                        >
-                          Cambiar precio
-                        </Button>
-                      </HStack>
-                    )}
-                    </>
-                  ) : (
-                    iAmOwner && (
+            <Stack mt="3" spacing={2}>
+              {nft.listed ? (
+                <>
+                  <Text>💰 {nft.priceEth} ETH</Text>
+                  {iAmOwner && (
+                    <HStack>
                       <Button
                         size="sm"
+                        isLoading={!!txLoading[kCancel(nft.tokenId)]}
                         isDisabled={isTokenBusy(nft.tokenId)}
-                        onClick={() => openListModal(nft.tokenId)}
+                        onClick={async () => {
+                          const key = kCancel(nft.tokenId);
+                          setLoading(key, true);
+                          try { await cancelListing(nft.tokenId); }
+                          finally { setLoading(key, false); }
+                        }}
                       >
-                        Listar
+                        Cancelar
                       </Button>
-                    )
+                      <Button
+                        size="sm"
+                        onClick={() => openUpdateModal(nft.tokenId, nft.priceEth)}
+                      >
+                        Cambiar precio
+                      </Button>
+                    </HStack>
                   )}
-                </Stack>
-              </Box>
-            );
-          })}
-        </SimpleGrid>
+                </>
+              ) : (
+                iAmOwner && (
+                  <Button
+                    size="sm"
+                    isDisabled={isTokenBusy(nft.tokenId)}
+                    onClick={() => openListModal(nft.tokenId)}
+                  >
+                    Listar
+                  </Button>
+                )
+              )}
+            </Stack>
+          </Box>
+        );
+      })}
+    </SimpleGrid>
+  </>
+)}
+
+{/* Mis NFTs – vacío */}
+{!loadingNFTs && myNFTs.length === 0 && isConnected && (
+  <>
+    <DividerLine />
+    <Heading size="lg">Mis NFTs</Heading>
+    <Box p="6" borderWidth="1px" borderRadius="md" bg="blackAlpha.200">
+      <Text>No tienes NFTs (o no en esta red).</Text>
+    </Box>
+  </>
+)}
+
         {/* Paginación */}
         {allListings.length > 0 && !globalCursor.done && (
           <HStack justify="center" mt="4">
@@ -1066,11 +1131,7 @@ return (
           </Text>
         )}
 
-      </>
-    )}
-
     {/* Marketplace Global */}
-      <>
     <DividerLine />
     <Heading size="lg">Marketplace Global</Heading>
 
@@ -1110,63 +1171,66 @@ return (
       </Text>
     </HStack>
 
-    {/* Lista o estado vacío */}
-    {filteredGlobal.length > 0 ? (
-      <SimpleGrid columns={[1, 2, 3]} spacing={5}>
-        {filteredGlobal.map((nft) => {
-          const me = address?.toLowerCase?.() || "";
-          const cantBuy = (nft.seller || "").toLowerCase() === me; // es mi propio listado
+{/* Lista o estado vacío (con skeletons) */}
+{loadingGlobal && filteredGlobal.length === 0 ? (
+  // Primera carga: solo skeletons
+  <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+    {Array.from({ length: GLOBAL_SKELETON_COUNT }).map((_, i) => (
+      <NFTCardSkeleton key={`global-skel-${i}`} />
+    ))}
+  </SimpleGrid>
+) : filteredGlobal.length > 0 ? (
+  <>
+    <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      {filteredGlobal.map((nft) => {
+        const me = address?.toLowerCase?.() || "";
+        const cantBuy = (nft.seller || "").toLowerCase() === me; // es mi propio listado
 
-          return (
-            <Box
-              key={`${nft.tokenId}-${nft.seller}`}
-              borderWidth="1px"
-              borderRadius="lg"
-              overflow="hidden"
-              p="3"
+        return (
+          <Box
+            key={`${nft.tokenId}-${nft.seller}`}
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            p="3"
+          >
+            <Image src={nft.image} alt={nft.name} />
+            <Heading size="md" mt="2">{nft.name}</Heading>
+            <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+            <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+            <Text>
+              Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}
+            </Text>
+            <Text mt="1">💰 {nft.priceEth} ETH</Text>
+
+            <Button
+              size="sm"
+              colorScheme="green"
+              mt="2"
+              isLoading={!!txLoading[kBuy(nft.tokenId)]}
+              isDisabled={cantBuy || isTokenBusy(nft.tokenId)}
+              aria-busy={!!txLoading[kBuy(nft.tokenId)]}
+              style={isTokenBusy(nft.tokenId) ? { pointerEvents: "none" } : undefined}
+              title={cantBuy ? "No puedes comprar tu propio NFT" : undefined}
+              onClick={(e) => {
+                const key = kBuy(nft.tokenId);
+                runWithLock(key, e, () =>
+                  buyToken(String(nft.tokenId), nft.priceEth, nft.seller)
+                );
+              }}
             >
-              <Image src={nft.image} alt={nft.name} />
-              <Heading size="md" mt="2">{nft.name}</Heading>
-              <Text fontSize="sm" color="gray.600">{nft.description}</Text>
-              <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
-              <Text>
-                Vendedor: {nft.seller?.slice(0, 6)}...{nft.seller?.slice(-4)}
-              </Text>
-              <Text mt="1">💰 {nft.priceEth} ETH</Text>
+              {cantBuy ? "Tu NFT" : "Comprar"}
+            </Button>
+          </Box>
+        );
+      })}
 
-              <Button
-                size="sm"
-                colorScheme="green"
-                mt="2"
-                isLoading={!!txLoading[kBuy(nft.tokenId)]}
-                isDisabled={cantBuy || isTokenBusy(nft.tokenId)}
-                aria-busy={!!txLoading[kBuy(nft.tokenId)]}
-                style={isTokenBusy(nft.tokenId) ? { pointerEvents: "none" } : undefined}
-                title={cantBuy ? "No puedes comprar tu propio NFT" : undefined}
-                onClick={(e) => {
-                  // usa el candado + tu buyToken
-                  const key = kBuy(nft.tokenId);
-                  runWithLock(key, e, () =>
-                    buyToken(String(nft.tokenId), nft.priceEth, nft.seller)
-                  );
-                }}
-              >
-                {cantBuy ? "Tu NFT" : "Comprar"}
-              </Button>
-            </Box>
-          );
-        })}
-
-      </SimpleGrid>
-    ) : (
-      <Box p="6" borderWidth="1px" borderRadius="md" bg="blackAlpha.200">
-        <Text>
-          {loadingGlobal
-            ? "Cargando listados..."
-            : "No hay listados (o no coinciden con los filtros)."}
-        </Text>
-      </Box>
-    )}
+      {/* Mientras se cargan más páginas, añade 2–3 skeletons al final para evitar “saltos” */}
+      {loadingGlobal &&
+        Array.from({ length: 3 }).map((_, i) => (
+          <NFTCardSkeleton key={`global-skel-inline-${i}`} />
+        ))}
+    </SimpleGrid>
 
     {/* Botón de carga adicional */}
     {!globalCursor.done && (
@@ -1180,6 +1244,13 @@ return (
       </Button>
     )}
   </>
+) : (
+  // Sin resultados y sin carga
+  <Box p="6" borderWidth="1px" borderRadius="md" bg="blackAlpha.200">
+    <Text>No hay listados (o no coinciden con los filtros).</Text>
+  </Box>
+)}
+
 
 
 

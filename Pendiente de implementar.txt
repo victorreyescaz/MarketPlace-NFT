@@ -28,9 +28,9 @@ ________________________________________________________________________________
 
 -- Si la billetera no tiene NFTs, cuando le das al boton Mis NFts, que te salga un mensaje informando de que aun no has minteado ningun NFT
 
--- Cuando cambie de wallet, que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anteior)
+-- Cuando cambie de wallet, que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anterior)
 
--- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda
+-- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
 
 -- Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.
     Implementarla en el frontend para poder quemar tokens
@@ -39,7 +39,7 @@ ________________________________________________________________________________
 
 -- Anclar header para que cuando hagas scroll para abajo se mantenga visible (asi podemos ver las alertas)
 
--- 
+-- Boton connect wallet appkit (es mas bonito e incluso sale el saldo actual de la wallet). Al entrar en la dApp que no te salte el popup de metamask para conectar la wallet, que puedas explorar la dApp sin conectarte
 
 ___________________________________________________________________________________________________________________________________________
 
@@ -51,7 +51,40 @@ Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedi
 
 Soporte multi-colección: si algún día quieres que el marketplace soporte varios contratos NFT, ya lo tienes medio hecho (con el nftAddr).
 
+___________________________________________________________________________________________________________________________________________
 
+
+Si te apetece, siguiente tanda de mejoras (rápidas y útiles):
+
+Auto-refresh del Marketplace Global tras comprar/cancelar/actualizar precio
+
+Después de await loadMyNFTs(), lanza await loadAllListings(true) para reflejar el stock al momento.
+
+Badges de estado en las cards
+
+“Listado”, “No listado”, “Tuyo” (ya muestras “Tu NFT”, pero puedes añadir un Badge en la card).
+
+Toasts agradables (si migras banners a useToast de Chakra)
+
+success al mintear/comprar/cancelar; error con shortMessage/reason.
+
+Índice local + cache de metadatos
+
+Memoriza tokenURI → metadata en un Map (o localStorage) para evitar refetch en cada apertura.
+
+Histórico de actividad (on-chain)
+
+Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para un marketplace.
+
+UX: “Volver / Cambiar vista”
+
+Toggle entre “Mis NFTs” y “Marketplace Global” (estado view), ocultando la otra sección.
+
+Reintentos dirigidos
+
+Ya tienes withRetry; añade backoff leve en fetch(uri) y market.getListing por robustez extra.
+
+Dime cuál quieres atacar ahora y lo integramos en tu App.jsx sin romper nada. 🚀
 
 
 
