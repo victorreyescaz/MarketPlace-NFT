@@ -1,3 +1,9 @@
+/*
+
+  Inicializa el entorno y renderiza la dApp
+
+*/
+
 import React from 'react'
 import ReactDOM from "react-dom/client"
 import App from "./App";
@@ -33,7 +39,8 @@ createAppKit({
   },
 });
 
-
+// React.StrictMode ayuda a detectar errores de render en desarrollo
+// Provider de chakra
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

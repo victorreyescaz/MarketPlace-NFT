@@ -37,6 +37,13 @@ ________________________________________________________________________________
 
 -- Añadir pequeño footer con informacion del creador o lo que se me ocurra
 
+-- A la hora de listar, cambiar precio o comprar un nft, mostrar un pequeño aviso con el valor equivalente en USD(con fetch a CoinGecko)
+
+-- Echar un ojo a wallet.js, se utiliza web3Modal, en el main.jsx se utiliza appkit, es redundante, utilizar appkit. Appkit maneja walletConnect y injected wallets(metamask, brave, coinbase....) Asi evitaremos tener que usar el archivo wallet.js
+
+-- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
+
+-- Introducir spinners en momentos de carga que vea necesario
 
 ___________________________________________________________________________________________________________________________________________
 
