@@ -1,65 +1,99 @@
 import React, { useState, useRef } from "react";
+/*
+Button: botones.
 
+VStack/HStack: stacks verticales/horizontales con gap y alignment.
+
+Text, Heading: tipografía.
+
+Input, Textarea: formularios.
+
+SimpleGrid: rejillas responsivas sencillas (cards, galerías).
+
+Box: contenedor genérico (div con props de estilo).
+
+Image: imágenes con estilos de Chakra.
+
+Stack: stack genérico (vertical por defecto).
+*/
 import {
 Button, VStack, Text, Heading, Input, Textarea, HStack,
 SimpleGrid, Box, Image, Stack
 } from "@chakra-ui/react";
 
-import { Skeleton, SkeletonText, Spinner } from "@chakra-ui/react";
+import { Skeleton, SkeletonText, Spinner } from "@chakra-ui/react"; //Placeholders de carga
 
 import { useAppKitProvider, useAppKitAccount, useAppKit } from "@reown/appkit/react";
-import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } from "ethers";
+/* 
+useAppKitProvider: te da el provider conectado (RPC + firmante según contexto).
 
+useAppKitAccount: info de la cuenta (address conectada, chainId, estado conectado/desconectado).
+
+useAppKit: control del modal (abrir/cerrar, etc.).
+*/
+import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } from "ethers";
+/*
+BrowserProvider: crea provider desde una wallet del navegador (injected / WalletConnect).
+
+JsonRpcProvider: provider directo a una URL RPC (lecturas sin wallet; útil para modo “solo lectura”).
+
+Contract: instanciar contratos (address + ABI + signer/provider).
+
+parseEther, formatEther: conversión ETH ↔ wei.
+*/
 import NFT_ABI from "./abis/NFT.json";
 import MARKET_ABI from "./abis/Marketplace.json";
 
 
-// Sustituto del Divider ya que tenemos problemas para importarlo
+// Sustituto del Divider ya que tenemos problemas para importarlo. El divider renderiza una linea <hr> de HTML
 
 const DividerLine = (props) => (
   <Box as="hr" borderTopWidth="1px" borderColor="whiteAlpha.300" my="4" {...props} />
 );
 
-/* ================= Direcciones y ABIs ================= */
+                                /* ================= Direcciones desplegadas y ABIs ================= */
 
-const NFT_ADDRESS    = "0xe23fcfa688bd1ff6d0f31bac7cd7d4965d0c285e";// en minúsculas para evitar error checksum
-const MARKET_ADDRESS = "0x47576a1704597adf6bf9268f1125388748908a2a";// en minúsculas para evitar error checksum
+const NFT_ADDRESS    = import.meta.env.VITE_NFT_ADDRESS;
+const MARKET_ADDRESS = import.meta.env.VITE_MARKET_ADDRESS;
 
+// Para instanciar contratos en el desarrollo de la dApp. 
 // Si en el JSON hay solo el array => úsalo directo; si es artifact completo => usa .abi
 const NFT_IFACE = Array.isArray(NFT_ABI) ? NFT_ABI : NFT_ABI.abi;
 const MARKET_IFACE = Array.isArray(MARKET_ABI) ? MARKET_ABI : MARKET_ABI.abi;
 
 
-
-/* ================= Helpers RPC + reintentos ================= */
+                                     /* ================= Helpers RPC + reintentos ================= */
 
 const READ_RPC = import.meta.env.VITE_RPC_SEPOLIA || "";
 
 // Paginación para RPC
-const MARKET_DEPLOY_BLOCK = Number(import.meta.env.VITE_MARKET_DEPLOY_BLOCK || 0);
-const BLOCK_PAGE   = 80;   // bajar si hay error 429
+const MARKET_DEPLOY_BLOCK = Number(import.meta.env.VITE_MARKET_DEPLOY_BLOCK || 0); // Bloque donde se desplego el marketplace, para escanear empezando por este bloque, asi evitamos escanear antes de...
+const BLOCK_PAGE   = 80;      // bajar si hay error 429
 const PAGE_DELAY_MS = 1200;  // pausa entre páginas
-const MIN_WINDOW   = 80;   // ventana mínima al reducir
-const MAX_RETRIES  = 3;     // reintentos lecturas puntuales
+const MIN_WINDOW   = 80;    // ventana mínima al reducir
+const MAX_RETRIES  = 3;    // reintentos lecturas puntuales
 
-// cuántos NFTs traer por llamada y tope de páginas internas
+// Cuántos NFTs traer por llamada y tope de páginas internas
 const GLOBAL_BATCH_TARGET = 10;  // Nfts que se cargan por pagina
 const GLOBAL_MAX_PAGES    = 6;   // seguridad para no abusar del RPC
 
-
+// Helper para pausar entre reintentos
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
+// Intenta ejecutar una funcion(fn), por ejemplo leer los listados del marketplace, si falla espera y vuelve a intentar, el delay crece linealmente, tras agotar intentos lanza error. Manejamos posibles errores intermitentes.
 async function withRetry(fn, { attempts = MAX_RETRIES, delayMs = 250 } = {}) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
     try { return await fn(); }
     catch (e) { lastErr = e; await sleep(delayMs * (i + 1)); }
   }
-  throw lastErr;
+  throw lastErr; // Si despues de todos los intentos sigue fallando, lanza el ultimo error
 }
 
+// Guarda instancia del provider. Funcion: memorizar el provider para no recrearlo cada vez que alguien llame a getReadProvider
 let _cachedReader = null;
 
+// Funcion que devuelve un provider de lectura, si existe un RPC en .env crea un JsonRpcProvider apuntando a ese RPC, valida que el RPC responde con getNetwork y sino controla el error. Si falla, utilizamos el provider de la wallet del usuario como fuente de lectura
 async function getReadProvider(walletProvider) {
   if (_cachedReader) return _cachedReader;
 
@@ -74,23 +108,31 @@ async function getReadProvider(walletProvider) {
     }
   }
 
-  // Fallback: usa el provider de la wallet (Metamask) para lectura
+  // Fallback: usa el provider de la wallet para lectura
   const browser = new BrowserProvider(walletProvider);
   _cachedReader = browser;
   return browser;
 }
 
-
+// Funcion que detecta si un error proviene de haber alcanzado el limite de peticiones en el RPC
 function isRateLimit(e) {
   const code = e?.code ?? e?.error?.code ?? e?.status;
   const msg  = (e?.message || e?.error?.message || "").toLowerCase();
-  return code === 429 || code === -32005 || msg.includes("rate") || msg.includes("too many");
+  return code === 429 || code === -32005 || msg.includes("rate limit") || msg.includes("too many") || msg.includes("quota") || msg.includes("exceed");
 }
 
-// Pide SOLO ItemListed en [from,to]; si -32005/429, reduce la ventana y reintenta
+// Pide solo ItemListed en [from,to]; si -32005/429, reduce la ventana de bloques y reintenta
+/* 
+market: instancia de contrato Marketplace (new Contract(MARKET_ADDRESS, ABI, provider)).
+
+from, to: bloques de inicio y fin para buscar eventos.
+
+minWindow: tamaño mínimo de ventana de bloques para no dividir infinitamente.
+*/
 async function fetchListedRange(market, from, to, minWindow = 40) {
   let left = from, right = to;
 
+  // El bucle continua hasta que sale con el return o lanza error definitivo en el throw
   while (true) {
     try {
       const logs = await market.queryFilter(market.filters.ItemListed(), left, right);
@@ -98,12 +140,12 @@ async function fetchListedRange(market, from, to, minWindow = 40) {
     } catch (e) {
       const msg  = (e?.message || e?.error?.message || "").toLowerCase();
       const code = e?.code ?? e?.error?.code ?? e?.status;
-      const isRate = code === 429 || code === -32005 || msg.includes("rate") || msg.includes("too many");
+      const isRate = code === 429 || code === -32005 || msg.includes("rate limit") || msg.includes("too many");
 
-      const win = right - left;
-      if (!isRate || win <= minWindow) throw e;
+      const win = right - left; // Calculamos el tamaño de la ventana
+      if (!isRate || win <= minWindow) throw e; // Si no es un rate limit o la ventana es muy corta lanzamos error porque no se puede manejar
 
-      // recorta la ventana y vuelve a intentar
+      // Si es un rate limit, recorta la ventana y vuelve a intentar
       const half = Math.max(minWindow, Math.floor(win / 2));
       right = left + half;
       await sleep(400);
@@ -112,7 +154,7 @@ async function fetchListedRange(market, from, to, minWindow = 40) {
 }
 
 
-/* ================= Pinata helpers ================= */
+                                                /* ================= Pinata helpers ================= */
 
 async function uploadFileToPinata(file) {
   const jwt = import.meta.env.VITE_PINATA_JWT?.trim();
@@ -182,7 +224,7 @@ async function scanCollectionListings(nft, market, maxScan = 200) {
 }
 
 
-// ======== Helpers loadAllListings ========
+                                                          // ======== Helpers loadAllListings ========
 
 const makeKey = (it) => `${it.tokenId}-${(it.seller || "").toLowerCase()}`;
 
@@ -202,7 +244,7 @@ function mergeBatchIntoState(batch) {
   });
 }
 
-// ========= Helper indicadores de carga, mientras se cargan los nfts =========
+                                              // ========= Helper indicadores de carga, mientras se cargan los nfts =========
 
 const GLOBAL_SKELETON_COUNT = 6; // nº de tarjetas esqueleto en la primera carga
 
@@ -234,7 +276,7 @@ function SkeletonGrid({ count = 6 }) {
 
 
 
-/* ================= Componente ================= */
+                                                /* ================= Componente ================= */
 
 function App() {
   const { walletProvider } = useAppKitProvider("eip155");
