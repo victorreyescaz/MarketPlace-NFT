@@ -156,6 +156,7 @@ async function fetchListedRange(market, from, to, minWindow = 40) {
 
                                                 /* ================= Pinata helpers ================= */
 
+      
 async function uploadFileToPinata(file) {
   const jwt = import.meta.env.VITE_PINATA_JWT?.trim();
   if (!jwt) throw new Error("Falta VITE_PINATA_JWT en .env");
