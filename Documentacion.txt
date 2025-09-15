@@ -30,3 +30,5 @@ Lo desplegamos en sepolia con deployMarketplace.js
 Actualizamos el utils/contract.js con la direccion del contrato Marketplace desplegado en Sepolia.
 
 Crear el abi de Marketplace como hemos hecho con el de NFT, en artifacts y nombre del contrato nos llevamos todo lo que esta dentro del abi a un json 
+
+npm run build + npm run preview para probarlo en produccion

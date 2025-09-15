@@ -16,6 +16,9 @@ Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en ot
 
 ___________________________________________________________________________________________________________________________________________
 
+--- SEGURIDAD VARIABLES DE ENTORNO. HAY QUE SEPARAR FRONTEND Y BACKEND, UN .ENV EN CADA UNO, EN EL .ENV DEL BACKEND INTRODUCIR LAS VARIABLES SENSIBLES QUE NO DEBEN SALIR DEL SERVIDOR. SOLO LAS USARA MI CODIGO HARDHAT, SCRIPTS DE NODE O EL SERVIDOR, NUNCA REACT/VITE 
+EN EL .ENV DEL FRONTEND VARIBLES COMO NFT_ADDRESS, MARKET_ADDRESS, 
+
 --- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo
 
 --- Poder mintear mas de un NFT a la vez, una coleccion
@@ -44,6 +47,8 @@ ________________________________________________________________________________
 -- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
 
 -- Introducir spinners en momentos de carga que vea necesario
+
+-- Al listar un nft, cuando se esta ejecutando la transaccion bloquear el boton para no poder darle a listar otra vez y que te genere otro popup en metamask
 
 ___________________________________________________________________________________________________________________________________________
 
