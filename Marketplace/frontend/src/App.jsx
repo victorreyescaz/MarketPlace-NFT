@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 /*
 Button: botones.
 
@@ -31,7 +31,7 @@ useAppKitAccount: info de la cuenta (address conectada, chainId, estado conectad
 
 useAppKit: control del modal (abrir/cerrar, etc.).
 */
-import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther } from "ethers";
+import { BrowserProvider, JsonRpcProvider, Contract, parseEther, formatEther, ethers } from "ethers";
 /*
 BrowserProvider: crea provider desde una wallet del navegador (injected / WalletConnect).
 
@@ -293,16 +293,16 @@ function mergeBatchIntoState(batch) {
 
 const GLOBAL_SKELETON_COUNT = 6; // nº de tarjetas skeleton en la primera carga
 
-// Card “placeholder” para una NFT
+// Card “placeholder” para una NFT. Componente de React
 function NFTCardSkeleton() {
   return (
     <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
-      <Skeleton height="220px" />
+      <Skeleton height="220px" /> {/* Tamaño del skeleton */}
       <Box mt="3">
-        <Skeleton height="20px" width="70%" />
-        <SkeletonText mt="2" noOfLines={2} spacing="2" />
-        <Skeleton mt="2" height="14px" width="40%" />
-        <Skeleton mt="3" height="32px" width="90px" />
+        <Skeleton height="20px" width="70%" /> {/* Simula el nombre del NFT */}
+        <SkeletonText mt="2" noOfLines={2} spacing="2" /> {/* Simula la descripcion */}
+        <Skeleton mt="2" height="14px" width="40%" /> {/* Simula direccion del seller */}
+        <Skeleton mt="3" height="32px" width="90px" /> {/* Simula el boton de accion (comprar) */}
       </Box>
     </Box>
   );
@@ -311,7 +311,9 @@ function NFTCardSkeleton() {
 // Grid de skeletons para mantener el layout
 function SkeletonGrid({ count = 6 }) {
   return (
-    <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+    <SimpleGrid columns={[1, 2, 3]} spacing={5}> {/* Los NFTs se muestran de 3 en 3 (columnas) con una separacion (spacing) entre tarjetas. Grid responsive, con esto las tarjetas skeleton se adaptan al tamaño de la pantalla */}
+
+    {/* Crea array vacio e itera sobre el, en cada iteracion renderiza un NFTCardSkeleton, hay que darle una key unica a cada elemento(requerido por React en listas) */}
       {Array.from({ length: count }).map((_, i) => (
         <NFTCardSkeleton key={i} />
       ))}
@@ -332,7 +334,7 @@ function App() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [file, setFile] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false); // Lo utiliamos para deshabilitar botones y mostrar spinners
 
   // gallery
   const [myNFTs, setMyNFTs] = useState([]);
@@ -341,41 +343,59 @@ function App() {
   // proceeds (saldo a retirar)
   const [proceedsEth, setProceedsEth] = useState("0");
 
+  // Handler de <input type="file">, toma el primer archivo seleccionado, si no hay archivo, guarda null. Queda en estado para usarlo luego(subir a IPFS, Pinata)
   const onPickFile = (e) => setFile(e.target.files?.[0] || null);
 
   // Marketplace Global
   const [allListings, setAllListings] = useState([]);
-  const [globalCursor, setGlobalCursor] = useState({ nextTo: 0, done: false }); // control del rango de bloques
+
+  /*Cursor para paginacion por bloques.
+  nextTo: siguiente bloque final al que llegar en la proxima pagina/consulta
+  done: si ya terminamos de recorres el rango(no quedan mas paginas de bloques)
+  Esrte estado permite cargar mas incrementalmente sin volver a empezar desde el bloque deploy
+  */
+  const [globalCursor, setGlobalCursor] = useState({ nextTo: 0, done: false });
+
+  // Flag de carga para el grid global, muestra SkeletonGrid mientras pides otra pagina de datos/eventos 
   const [loadingGlobal, setLoadingGlobal] = useState(false);
 
 
   // Modal de precio
   const [priceModal, setPriceModal] = useState({
-    isOpen: false,
-    mode: "list",         // "list" | "update"
+    isOpen: false, // Visible o oculto
+    mode: "list",// "list" | "update"
     tokenId: null,
     defaultPrice: "",
     name: "",
   });
 
-  // loading por NFT (mapa por tokenId)
+  //================== Desactivar boton cuando esta en uso ==================
+
+  // loading por NFT (mapa por tokenId). Permite saber si un boton en concreto esta ocupado
   const [txLoading, setTxLoading] = useState({}); // { [key: string]: boolean }
 
-  // Helpers de clave
+  // Helpers de clave. Generar identificadores unicos para cada accion de un NFT.
+  // Guardan estados separados en txLoading, asi puedes marcar solo el boton de comprar en loading sin afectar al de cancelar
+  // Consultar rapido si una accion esta ocupada
   const kBuy    = (id) => `buy:${String(id)}`;
   const kCancel = (id) => `cancel:${id}`;
   const kList   = (id) => `list:${id}`;
   const kUpdate = (id) => `update:${id}`;
 
-  // Setter genérico
+  // Setter genérico. Para marcar/desmarcar una accion en curso. Ej: setLoading(kBuy(12), true) activa el spinner del botón “comprar” del token 12.
   function setLoading(key, value) {
     setTxLoading(prev => ({ ...prev, [key]: !!value }));
   }
 
   // ¿Algún botón de este token está ocupado?
+  /*
+  Mira en busyRef.current[kBuy(id)] (candado booleano inmediato) por si hay un candado inmediato, si esta, devuelve true
+  Recorre txLoading, si encuentra una clave que termina en :<id> y su valor es true, devuelve true, si no encuentra nada devuelve false
+  Resultado: se puede deshanilitar todos los botones de ese NFT si alguna accion suya esta ejecutandose
+  */
   function isTokenBusy(id) {
-    const suffix = `:${String(id)}`;
-    if (busyRef.current[kBuy(String(id))]) return true; // ← refleja el lock inmediato
+    const suffix = `:${String(id)}`; // Permite detectar cualquier clave que termine en ese token
+    if (busyRef.current[kBuy(String(id))]) return true; // refleja el lock inmediato
     
     for (const k in txLoading) {
       if (k.endsWith(suffix) && txLoading[k]) return true;
@@ -389,20 +409,24 @@ function App() {
   // Candado inmediato
   const busyRef = useRef({});
 
-  // 
+  // Util para deduplicar clicks dobles o evitar lanzar la misma tx dos veces
   const inFlight = React.useRef(new Set()); // Set<string>
-
-  // Wrapper genérico para clicks con lock + loading por clave
+  
+  // Wrapper genérico para clicks con lock + loading por clave. Sirve para evitar clicks duplicados (doble transaccion en Metamask)
+  // Recibe keyIn(clave unica para identificar operacion mint, buy, approve...)
+  // event (evente click del boton, para poder hacer preventDefault)
+  // fn (funcion que se quiere ejecutar, transaccion, llamana on chain)
 
 const runWithLock = async (keyIn, event, fn) => {
   const key = String(keyIn ?? "");
   const btn = event?.currentTarget;
 
   try {
+    // Evitamos el comportamiento por defecto del boton, evita que el formulario se recargue o que el evento dispare multiples listeners
     event?.preventDefault?.();
     event?.stopPropagation?.();
 
-    // si ya hay operación en curso para este key, ignorar
+    // si ya hay operación en curso para este key, ignorar el nuevo click
     if (busyRef.current[key]) {
       btn?.blur?.();
       console.info("[lock] ignored (already busy):", key);
@@ -411,7 +435,7 @@ const runWithLock = async (keyIn, event, fn) => {
 
     // bloqueo instantáneo (DOM) + estado de loading
     busyRef.current[key] = true;
-    if (btn) btn.disabled = true;           // ⬅️ bloqueo inmediato del botón
+    if (btn) btn.disabled = true; // bloqueo inmediato del botón
     setLoading(key, true);
 
     console.info("[lock] start:", key);
@@ -419,12 +443,12 @@ const runWithLock = async (keyIn, event, fn) => {
     console.info("[lock] done:", key);
     return true;
 
-  } catch (e) {
+  } catch (e) { // Capturamos y manejamos el error en el caso de que exista
     const code = e?.code ?? e?.error?.code;
     const msg  = (e?.message || e?.error?.message || "").toLowerCase();
     console.warn("[lock] error:", key, code, msg);
 
-    if (code === 4001 || msg.includes("user rejected")) {
+    if (code === 4001 || msg.includes("user rejected")) { // 4001 codigo estandar de rechazo de transaccion de Metamask(si el usuario cancelo)
       showInfo("Operación cancelada por el usuario");
     } else {
       showError(e, "Ha fallado la operación");
@@ -432,11 +456,11 @@ const runWithLock = async (keyIn, event, fn) => {
     return false;
 
   } finally {
-    // liberar SIEMPRE
+    // liberar SIEMPRE, incluso si hay error
     setLoading(key, false);
     busyRef.current[key] = false;
-    if (btn) btn.disabled = false;          // ⬅️ re-habilitar al cancelar/fallar/terminar
-    btn?.blur?.();
+    if (btn) btn.disabled = false; //re-habilitar boton al cancelar/fallar/terminar
+    btn?.blur?.(); // .blur() medoto nativo del DOM que quita el foco del elemento activo
     console.info("[lock] release:", key);
   }
 };
@@ -455,9 +479,16 @@ const runWithLock = async (keyIn, event, fn) => {
     const [uiInfo,  setUiInfo]  = useState(null);   // string | null
 
 
-  // loading por tokenId (compra)
+  // loading por tokenId (compra). Objeto de estados booleanos. Indica que NFTs estan en proceso de compra. Valor true => boton deshabilitado/spinner activo
   const [txLoadingBuy, setTxLoadingBuy] = useState({}); // { [tokenId: string]: boolean }
 
+  /* setTokenLoadingBuy
+  Funcion para actualizar solamente un estado de un token en especifico sin perder los demas
+
+  Coge el estado actual txLoading(nft que esta en proceso de compra), utiliza prev para obtener el estado anterior del nft(evita problemas si hay actualizaciones simultaneas) y crea un nuevo objeto de estado, copiando el estado anterior y luego sobreescribiendo o añadiento una clave con el nuevo valor
+
+  Con !!value forzamos que el valor sea booleano
+  */
   function setTokenLoadingBuy(tokenId, value) {
     setTxLoadingBuy(prev => ({ ...prev, [String(tokenId)]: !!value }));
 }
@@ -475,12 +506,20 @@ const runWithLock = async (keyIn, event, fn) => {
       );
     }
 
-    // Helpers para mostrar mensajes
+    // Helpers para mostrar mensajes de usuario
+
+    /* 
+    Centraliza como se muestran los errores al usuario.
+    Si le llega un string, lo muestra directamente, si le llega un objeto error, lo formatea con la funcion anterior ErrMsg()
+    */
     function showError(eOrMsg, fallback) {
       const msg = typeof eOrMsg === "string" ? eOrMsg : errMsg(eOrMsg, fallback);
       console.error("[UI Error]", msg, eOrMsg);
       setUiError(msg);
     }
+
+    // Muestra mensaje informativo.
+    // Si autoCloseMs tiene valor, por defecto 3500 ms, lo limpia automaticamente despues de ese tiempo => el mensaje desaparece
     function showInfo(message, autoCloseMs = 3500) {
       setUiInfo(message);
       if (autoCloseMs) setTimeout(() => setUiInfo(null), autoCloseMs);
@@ -491,22 +530,24 @@ const runWithLock = async (keyIn, event, fn) => {
     const AUTOLOAD_GLOBAL =
       (import.meta.env.VITE_AUTOLOAD_GLOBAL ?? "true").toLowerCase() !== "false";
 
-    // Evita doble ejecución en StrictMode
+    // Evita doble ejecución en StrictMode, no provoca re-renderizados, se usa para recordar si ya hicimos la carga inicial del marketplace
     const autoLoadRef = React.useRef(false);
 
-    React.useEffect(() => {
+  // useEffect que carga automáticamente los listados del marketplace(NFTs disponibles) cuando la app detexta que ya tiene disponible un provider(conexion a la blockchain o a Metamask) y lo hace solo una vez aunque React intente ejecutarlo mas veces(como ocurre en StrictMode en desarrollo) Este useEffect se ejecuta al montar el componente por primera vez y cada vez que cambie walletProvider (cuando el usuario se conecta o cambia de wallet) 
+
+  React.useEffect(() => {
     if (!AUTOLOAD_GLOBAL) return;
 
     // Si ya hicimos el autoload, no repetir (StrictMode provoca doble render en dev)
     if (autoLoadRef.current) return;
 
     // Si no tienes READ_RPC y aún no hay walletProvider, espera a que exista
-    // (con READ_RPC tu getReadProvider ya trabaja sin wallet conectada)
+    // (con READ_RPC getReadProvider ya trabaja sin wallet conectada)
     if (!READ_RPC && !walletProvider) return;
 
     autoLoadRef.current = true;
 
-    // Reset de filtros y orden al abrir
+    // Reset de filtros que hayan podido quedar en una sesion anterior
     setQ("");
     setMinP("");
     setMaxP("");
@@ -516,22 +557,41 @@ const runWithLock = async (keyIn, event, fn) => {
     loadAllListings(true);
   }, [walletProvider]); // se disparará cuando haya provider disponible
 
-
-
     // -----------------------------------------------------------------------
 
+    // =============== Funciones que controlan la paertura y cierre del modal de precio usado para listar o actualizar NFTs en el marketplace ================
+
+  // Busca en la lista de mis nfts el nft con el token id que se le pasa por la funcion, si lo encuentra obtiene su name para mostrarlo en el modal, sino usa string vacio como fallback.
+  // Llama a setPriceModal para abrir el modal y ponerlo en venta
   function openListModal(tokenId, name) {
   const fallbackName = myNFTs.find(n=>n.tokenId === String(tokenId))?.name || "";
-  setPriceModal({ isOpen: true, mode: "list", tokenId, defaultPrice: "0.01", name: name ?? fallbackName });
+  setPriceModal({ 
+    isOpen: true, 
+    mode: "list", 
+    tokenId, 
+    defaultPrice: "0.01", 
+    name: name ?? fallbackName });
   }
+
+  // Busca en nft con el tokenid, abre el modal en modo update para actualizar el precio de un NFT ya listado
   function openUpdateModal(tokenId, currentPrice, name) {
-    const fallbackName = myNFTs.find(n=>n.tokenId === String(tokenId))?.name || "";
-    setPriceModal({ isOpen: true, mode: "update", tokenId, defaultPrice: String(currentPrice ?? "0.01"), name: name ?? fallbackName });
+    const fallbackName = myNFTs.find(n=>n.tokenId === String(tokenId))?.name || ""; // “Busca en myNFTs el primer NFT cuyo tokenId sea igual al tokenId dado (convertido a string).Si lo encuentras, coge su name; si no lo encuentras (o el nombre es falsy), usa "".”
+    setPriceModal({
+      isOpen: true,
+      mode: "update",
+      tokenId,
+      defaultPrice: String(currentPrice ?? "0.01"),
+      name: name ?? fallbackName });
   }
+
+  // Obtiene el estado previo p de setPriceModal, crea un nuevo objeto con todas las propiedades pero cambiando solo el isOpen:False para cerrar el modal sin borrar su contenido, esto permite al modal conservar los datos por si el usuario lo vuelve a abrir rapidamente.
   function closePriceModal() {
     setPriceModal(p => ({ ...p, isOpen: false }));
   }
 
+  // ====================================================================
+
+  // Confirmar el precio introducido por el usuario al listar o actualizar un NFT
   async function confirmPrice(priceStr) {
     try {
       if (!priceStr || Number(priceStr) <= 0) {
@@ -539,10 +599,12 @@ const runWithLock = async (keyIn, event, fn) => {
         return;
       }
       const { mode, tokenId } = priceModal;
-      const key = mode === "list" ? kList(tokenId) : kUpdate(tokenId);
+      const key = mode === "list" ? kList(tokenId) : kUpdate(tokenId); // 
 
       setLoading(key, true);
 
+      // Si mode del priceModal === "list", seleccionamos el token, comprobamos si está listado, si ya está listado paramos la ejecucion de la funcion. Si no esta listado esperamos a que se ejecute la funcion listToken(listItem del marketplace.sol) y lista el NFT, si no lo lista asumimos que lo actualiza asi que esperamos a que se ejecute upDateListing.
+      // Luego cerramos el modal, si hubiera cualquier error lo controlamos con el catch y finalmente volvemos a calcular la misma key y marcamos el proceso como no cargado, asi el boton se reactivará
       if (mode === "list") {
         const my = myNFTs.find(n => n.tokenId === tokenId);
         if (my?.listed) { alert("Este NFT ya está listado"); return; }
@@ -560,16 +622,19 @@ const runWithLock = async (keyIn, event, fn) => {
       setLoading(key, false);
     }
   }
+  // ==================================================================== 
 
-  /* ========= Firmas / contratos + acciones Marketplace ========= */
+  /* ========= Firmas / contratos + acciones Marketplace ========= Interaccion con ERC-721 */
 
+  // Funcion helper para obtener el signer para poder enviar transacciones
   const getSigner = async () => (await new BrowserProvider(walletProvider)).getSigner();
 
+  // 
   async function ensureApprovalAll(owner) {
     const signer = await getSigner();
     const nft = new Contract(NFT_ADDRESS, NFT_IFACE, signer);
 
-    // sanity ABI
+    // Comprobacion que las funciones isApprovedForAll y setApprovedForAll existen en el NFT_IFACE(ABI)
     try {
       nft.interface.getFunction("isApprovedForAll");
       nft.interface.getFunction("setApprovalForAll");
@@ -577,14 +642,26 @@ const runWithLock = async (keyIn, event, fn) => {
       throw new Error("ABI NFT sin isApprovedForAll/setApprovalForAll");
     }
 
+    // Comprobamos que el marketplace tiene permiso para mover los nfts del owner. withRetry reintenta por si hay problemas con el RPC
     const approved = await withRetry(() => nft.isApprovedForAll(owner, MARKET_ADDRESS));
     if (approved) return;
 
+    // Si el marketplace no tiene permiso, los aprobamos. Con staticCall ejecutamos la funcion "en seco" sin gastar gas para verificar que no se revierte, si hubiera algun error se lanzaria antes de consumir GAS
     await nft.setApprovalForAll.staticCall(MARKET_ADDRESS, true);
+
+    // Estimacion el GAS necesario para la transaccion real
     const gas = await nft.setApprovalForAll.estimateGas(MARKET_ADDRESS, true);
+
+    // Llamanda a setApprovalForAll para aprobar el marketplace. Gas limit +20% por dar un poco de margen ya que el GAS a la hora de ejecutar puede variar respecto a la estimacion (error de subestimacion), con este margen evitamos out of gas que pueden costar ETH (Si la transaccion cuesta 100 gas y tienes 70 no se ejecutara la transaccion y perderas los 70 de gas)
     const tx  = await nft.setApprovalForAll(MARKET_ADDRESS, true, { gasLimit: (gas * 120n) / 100n });
-    await tx.wait();
-  }
+    await tx.wait(); // Espera a que la transaccion se haya minado
+
+  } // A partir de aqui el marketplace ya puede transferir NFTs del user.
+
+  // Implementamos las funciones necesarias del Marketplace.sol que vamos a utilizar en el Marketplace.
+  // Creamos en cada funcion const signer y una instancia del contrato del marketplace porque:
+  // 1- El signer puede cambiar de wallet, de red, desconectarse, esto crear re-renders, queremos una actualizacion del signer inmediata antes de ejecutar una funcion.
+  // 2 - A la instancia del market se le pasa el signer asi que si hay algun cambio necesitamos tambien lo mas reciente
 
   async function listToken(tokenId, priceEth) {
     if (!priceEth) return;
@@ -594,18 +671,22 @@ const runWithLock = async (keyIn, event, fn) => {
     await ensureApprovalAll(me);
 
     const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
-    try { market.interface.getFunction("listItem"); }
-    catch { alert("ABI Marketplace incorrecto"); return; }
+    try { 
+      market.interface.getFunction("listItem"); 
+    } catch {
+       alert("ABI Marketplace incorrecto"); return; }
 
     const price = parseEther(String(priceEth));
     await market.listItem.staticCall(NFT_ADDRESS, tokenId, price);
     const gas = await market.listItem.estimateGas(NFT_ADDRESS, tokenId, price);
     const tx  = await market.listItem(NFT_ADDRESS, tokenId, price, { gasLimit: (gas * 120n) / 100n });
+
     await tx.wait();
     alert("✅ Listado creado");
     await loadMyNFTs();
   }
 
+  
   async function updateListing(tokenId, priceEth) {
     if (!priceEth) return;
     const signer = await getSigner();
@@ -620,6 +701,7 @@ const runWithLock = async (keyIn, event, fn) => {
     await loadMyNFTs();
   }
 
+  
   async function cancelListing(tokenId) {
     const signer = await getSigner();
     const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
@@ -632,7 +714,7 @@ const runWithLock = async (keyIn, event, fn) => {
     await loadMyNFTs();
   }
 
-
+// Esta bien checkear primero si el owner es el mismo que el seller para no seguir con la funcion. Tambien el crear dos instancias del contrato, la primera para leer el getListing sin pedir firma, la segunda solo si pasa la validacion entonces si que obtiene el signer y con esa simulamos gas y enviamos la transaccion real
 async function buyToken(tokenId, priceEth, sellerFromCard) {
   try {
     if (!walletProvider) { showError("Conecta tu wallet"); return; }
@@ -651,8 +733,8 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     if (listing.price === 0n) { showError("Este NFT ya no está listado."); return; }
     if (seller === me)        { showError("No puedes comprar tu propio NFT"); return; }
 
-    const value   = listing.price;
-    const signer  = await getSigner();
+    const value = listing.price;
+    const signer = await getSigner();
     const marketW = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
 
     showInfo("Simulando compra…");
@@ -673,11 +755,7 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     showError(err, "❌ Error al comprar");
   }
 }
-
-
-
-// ==================================================================================================
-
+  // Consulta en la blockchain cuanto ETH tiene acumulado el usuario por ventas en el marketplace(ganancias no retiradas)
   async function refreshProceeds() {
     try {
       const provider = await getReadProvider(walletProvider);
@@ -689,6 +767,7 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     }
   }
 
+  // Funcion para retirar als ganancias de las ventas del marketplace
   async function withdrawProceeds() {
     const signer = await getSigner();
     const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, signer);
@@ -701,11 +780,11 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     await refreshProceeds();
   }
 
-  /* ================= Mint ================= */
-
   const handleMint = async () => {
+    // Si no esta la wallet conectada abre el modal de conexion (EIP155 indica conexion Ethereum)
   if (!isConnected) return open({ view: "Connect", namespace: "eip155" });
   if (!walletProvider) return showError("No hay wallet provider");
+  // Si no hay imagen o nombre en el NFT a mintear muestra error
   if (!file || !name)   return showError("Falta imagen y/o nombre");
 
   try {
@@ -715,7 +794,9 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
 
     showInfo("Creando metadata...");
     const tokenURI = await uploadJSONToPinata({
-      name, description: desc || "", image: imageURI
+      name, 
+      description: desc || "",
+      image: imageURI,
     });
 
     showInfo("Firmando transacción de mint...");
@@ -727,7 +808,7 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     await tx.wait();
 
     showInfo("✅ NFT minteado con éxito");
-    setName(""); setDesc(""); setFile(null);
+    setName(""); setDesc(""); setFile(null); // Limpiamos los campos para dejar la UI lista para el siguiente mint
   } catch (e) {
     showError(e, "No se pudo mintear el NFT");
   } finally {
@@ -736,7 +817,7 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
 };
 
 
-  /* ================= Carga de NFTs ================= */
+                                          /* ================= Carga de NFTs ================= */
 
   const loadMyNFTs = async () => {
     if (!isConnected) return;
@@ -751,21 +832,27 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
       const nft    = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
       const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
 
-      // sanity: red y bytecode
+      // Devuelve info de la red actual, comprobamos si los contratos NFT y Marketplace tienen address(estan deployados en la blockchain)
+      // Con Promise.all hacemos las tres llamadas en paralelo y ganamos tiempo haciendo las tres promesas, el orden de las variables debe coincidir con el orden de las promesas
       const [net, codeNFT, codeMKT] = await Promise.all([
         provider.getNetwork(),
         provider.getCode(NFT_ADDRESS),
         provider.getCode(MARKET_ADDRESS),
       ]);
+
       console.log("ChainId:", Number(net.chainId));
       console.log("NFT has code?:", codeNFT !== "0x");
       console.log("MKT has code?:", codeMKT !== "0x");
+
+      if (codeNFT === "0x") {
+        alert("NFT_ADDRESS no contiene contrato en esta red");
+      }
       if (codeMKT === "0x") {
         alert("MARKET_ADDRESS no contiene contrato en esta red.");
         return;
       }
 
-      // sanity: ABI marketplace
+      // Verificacion del ABI marketplace
       try {
         market.interface.getFunction("getListing");
         market.interface.getFunction("getProceeds");
@@ -776,14 +863,14 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
         return;
       }
 
-      // balance
+      // Leemos cuantos NFTs tiene la address, pasamos ese valor a number por si tenemos que tratarlo en algun bucle
       const balanceBN = await withRetry(() => nft.balanceOf(address));
       const balance = Number(balanceBN);
       console.log("balanceOf(address):", balance);
 
       if (balance === 0) {
         setMyNFTs([]);
-        // proceeds aunque no haya NFTs
+        // actualizamos proceeds aunque no haya NFTs, se pueden tener ganancias aunque en este momento esta address no tenga NFTs 
         try {
           const proceeds = await withRetry(() => market.getProceeds(address));
           setProceedsEth(formatEther(proceeds));
@@ -793,40 +880,46 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
         return;
       }
 
-      // tokenIds: secuencial + retry (para evitar rate limits)
+      // Obtener tokenIds del usuario: secuencial + retry (para evitar rate limits)
       const tokenIds = [];
       for (let i = 0; i < balance; i++) {
         try {
-          const id = await withRetry(() => nft.tokenOfOwnerByIndex(address, i), { attempts: 4, delayMs: 250 });
+          // Obtiene el tokenId en la posicion i, reintenta 4 veces con 250ms entre intentos
+          const id = await withRetry(() => nft.tokenOfOwnerByIndex(address, i), { attempts: 4, delayMs: 250 }); 
           tokenIds.push(id);
-        } catch (e) {
+        } catch (e) { // Si tras los intentos falla, lo logueamos y seguimos con el siguiente index
           console.warn("tokenOfOwnerByIndex failed at index", i, e);
           continue;
         }
-        await sleep(120);
+        await sleep(120); // Pausa entre llamadas para no saturar al RPC
       }
-      console.log("tokenIds resolved:", tokenIds.map(x => x.toString()));
+      console.log("tokenIds resolved:", tokenIds.map(x => x.toString())); // Mostramos los tokenIds como strings
+      // transforma cada elemento x a string, se pasan porque los BigInt y BigNumber no se imprimien directamente bien en consola
 
       // construimos items (con retries)
       const items = [];
+      // Recorremos tokenIds y los pasamos a string
       for (const tokenIdBN of tokenIds) {
         const tokenId = tokenIdBN.toString();
 
         const [rawURI, owner, listing] = await Promise.all([
-          withRetry(() => nft.tokenURI(tokenId)),
-          withRetry(() => nft.ownerOf(tokenId)),
-          withRetry(() => market.getListing(NFT_ADDRESS, tokenId)),
+          withRetry(() => nft.tokenURI(tokenId)), // URL metadatos (ipfs://...)
+          withRetry(() => nft.ownerOf(tokenId)), // direccion actual del owner
+          withRetry(() => market.getListing(NFT_ADDRESS, tokenId)), // estado del token en el marketplace
         ]);
 
+        // Si el uri comienza por ipfs:// lo cambia a un gateway HTTP(Pinata) para que el neavegador pueda hacer fetch.
+        // Descarga en JSON de metadatos
         let uri = rawURI;
         if (uri.startsWith("ipfs://")) uri = uri.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
         const meta = await withRetry(() => fetch(uri).then(r => r.json()));
 
+        // Lo mismo con la imagen
         let img = meta.image;
         if (img?.startsWith("ipfs://")) img = img.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/");
 
-        const listed   = listing.price > 0n;
-        const priceEth = listed ? formatEther(listing.price) : null;
+        const listed   = listing.price > 0n; // Considera que si el nft esta listado debe tener un precio mayor a 0n(BigInt)
+        const priceEth = listed ? formatEther(listing.price) : null; // Convierte el precio (wei) a ETH legible para la UI con formatEther, si no está listado, null.
 
         items.push({
           tokenId,
@@ -852,32 +945,33 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
         console.warn("getProceeds falló (sin bloquear la UI):", e);
       }
     } catch (err) {
-      showError(error, "Error cargando tus NFTs");
+      showError(err, "Error cargando tus NFTs");
     } finally {
       setLoadingNFTs(false);
     }
   };
 
 
-  /*=================== Marketplace global =================== */
+                              /*=================== Marketplace global =================== */
 
 
 // Cargar Marketplace Global con paginación por bloques
-  const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
-  if (loadingGlobal) return;
+// Reset = true => limpia/repuebla desde cero ; False = añade/actualiza sobre lo ya cargado
+const loadAllListings = async (reset = true, target = GLOBAL_BATCH_TARGET) => {
+  if (loadingGlobal) return; // Si hay una carga global en curso return para evitar ejecuciones simultaneas
 
   try {
-    setMyNFTs([]);            // ocultar “Mis NFTs” cuando abrimos el global
-    setLoadingGlobal(true);
+    setMyNFTs([]);// ocultar “Mis NFTs” cuando abrimos el global
+    setLoadingGlobal(true); // Cargando global (spinners/deshabilitar UI)
 
     const provider = await getReadProvider(walletProvider);
     const market   = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
     const nft      = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
 
-    // --- semilla del map con el estado actual (no perder lo que ya hay pintado) ---
+    // Semilla del map con el estado actual (no perder lo que ya hay renderizado)
     const map = new Map((reset ? [] : allListings).map(it => [makeKey(it), it]));
 
-    // --- WARM START: si reset, poblar con estado on-chain actual y pintar ya ---
+    // WARM START: si reset, poblar con estado on-chain actual y pintar ya
     if (reset) {
       const scanned = await scanCollectionListings(nft, market, /*maxScan*/ 200);
       if (scanned.length > 0) {
@@ -889,18 +983,20 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
       }
     }
 
+    // Contadores listing validos y numero de paginas
     let collected = 0;
     let pages     = 0;
 
     const latest = await provider.getBlockNumber();
+    // Si reset o no hay cursor, empieza desde el ultimo bloque. Si hay cursor renanuda desde el nextTo del cursor
     let to   = (reset || !globalCursor.nextTo) ? latest : globalCursor.nextTo;
-    let done = false;
+    let done = false; // Indicador para cortar el bucle cuando no haya mas que buscar
 
     while (pages < GLOBAL_MAX_PAGES && collected < target && !done) {
-      // ventana inclusiva: to, to-1, ..., from
+      // Calcula el bloque inferior de la ventana actual
       const fromDesired = Math.max(MARKET_DEPLOY_BLOCK, to - (BLOCK_PAGE - 1));
 
-      // SOLO ItemListed (tu helper con backoff)
+      // SOLO ItemListed (helper con backoff)
       const { logs: listedLogs, usedFrom } =
         await fetchListedRange(market, fromDesired, to);
 
@@ -909,12 +1005,13 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
         const { nft: nftAddr, tokenId, seller } = log.args;
         const blockNumber = log.blockNumber;
 
-        if (nftAddr.toLowerCase() !== NFT_ADDRESS) continue;
+        if (nftAddr.toLowerCase() !== NFT_ADDRESS.toLowerCase()) continue;
 
         // clave estable por token + seller (puede relistarse a otro seller en el futuro)
         const keyPreview = makeKey({ tokenId: tokenId.toString(), seller });
         if (map.has(keyPreview)) continue;
-
+        
+        // Estas validaciones se repiten en el script, intentar hacer un componente con estas validaciones
         try {
           const listing = await withRetry(() => market.getListing(NFT_ADDRESS, tokenId));
           if (listing.price > 0n) { // sigue listado
@@ -944,7 +1041,8 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
         }
       }
 
-      // pinta incrementalmente lo reunido en esta página (evita “desapariciones”)
+      // Si en la pagina actual se han reunido items (pageBartch), se fusionan con el estado de la UI. 
+      // Pinta incrementalmente lo reunido en esta página (evita parpadeos/desapariciones)
       if (pageBatch.length) mergeBatchIntoState(pageBatch);
 
       collected += pageBatch.length;
@@ -977,12 +1075,12 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
   // búsqueda
   const raw = q.trim();
   if (raw) {
-    const digitsOnly   = /^\d+$/.test(raw);          // "6"
-    const digitsFromRaw = raw.replace(/\D/g, "");    // "#6" -> "6"
-    const needle = raw.toLowerCase();
+    const digitsOnly   = /^\d+$/.test(raw);          // "6" Comprueba si el input son solo digitos
+    const digitsFromRaw = raw.replace(/\D/g, "");    // "#6" -> "6" Extrae solo los digitos de raw quitando letras o simbolos
+    const needle = raw.toLowerCase();               
 
     if (digitsOnly) {
-      // Si es solo números, busca por tokenId exacto
+      // Si es solo números, busca por tokenId exacto. Si no existe se reemplaza por cadena vacia para evitar errores
       arr = arr.filter(it => String(it.tokenId ?? "") === raw);
     } else if (digitsFromRaw) {
       // Si tiene números con prefijo (#6, id:6), también filtra por tokenId
@@ -1007,12 +1105,10 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
     }
   }
 
-
-
   // rango de precio
   const min = parseFloat(minP);
   const max = parseFloat(maxP);
-  const isNum = (x) => Number.isFinite(x);
+  const isNum = (x) => Number.isFinite(x); // Funcion que devuelve true solo si x es un numero finito
 
   if (isNum(min)) {
     arr = arr.filter(it => Number.parseFloat(it.priceEth ?? "0") >= min);
@@ -1027,9 +1123,11 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
   } else if (sort === "price-desc") {
     arr.sort((a,b) => Number.parseFloat(b.priceEth||"0") - Number.parseFloat(a.priceEth||"0"));
   } else {
-    // "recent": por blockNumber (mayor primero). Si no hay, cae a tokenId desc
+    // "recent": por blockNumber (mayor primero). Si no hay, ordenalo de id mas alto a mas bajo
     arr.sort((a,b) => {
-      const ba = a.blockNumber ?? 0, bb = b.blockNumber ?? 0;
+      const ba = a.blockNumber ?? 0;
+      const bb = b.blockNumber ?? 0;
+
       if (bb !== ba) return bb - ba;
       return Number(b.tokenId||0) - Number(a.tokenId||0);
     });
@@ -1038,16 +1136,70 @@ async function buyToken(tokenId, priceEth, sellerFromCard) {
   return arr;
 }, [allListings, q, minP, maxP, sort]);
 
+// Este useEffect controla la conexion la wallet, cambiamos de cuenta o de red. A parte de actualizar los datos de la wallet(direccion publica y balance), nos cargara de nuevo el marketplace, "Mis NFTs" o lo que proceda segun lo que pase
+
+  useEffect(() => {
+    // Si existe wallletProvider(Appkit) úsalo, sino intenta usar el provider de la wallet, si no hay ninguno no se pueden escuchar eventos
+    const eth = walletProvider || (typeof window !== "undefined" ? window.ethereum : null);
+
+    if (!eth || !eth.on) return; // Si el provider no existe o no soporta suscripcion de eventos(.on) return
+
+    const onAccountsChanged = async(accounts) => {
+      if (!accounts || accounts.length === 0) {
+        // El usuario desconecto su wallet
+        address(null);
+        isConnected(false);
+        setMyNFTs([]);
+        return;
+      }
+
+      // El usuario cambió de wallet
+      const newAddress = accounts[0].toLowerCase();
+      address(newAddress);
+      await loadMyNFTs();
+      await refreshProceeds();
+    };
+
+    const onChainChanged = async (chainId) => {
+      console.log("Red cambiada a:", chainId);
+      // Actualiza el provider o fuerza una resincronizacion sin recargar
+      const newProvider = new ethers.BrowserProvider(window.ethereum);
+      walletProvider(newProvider);
+      await loadAllListings(true); // recarga el marketplace global
+      await loadMyNFTs();
+      await refreshProceeds();
+    };
+
+    eth.on("accountsChanged", onAccountsChanged);
+    eth.on("chainChanged", onChainChanged);
+
+    return () => {
+      eth.removeListener?.("accountsChanged", onAccountsChanged);
+      eth.removeListener?.("chainChanged", onChainChanged);
+    };
+  }, [walletProvider] // Nos pide meter todas las dependencias, de momento lo dejamos asi a ver si funciona, sino una forma de solucionarlo es declarar las variables con un useRef para apuntar a la ultima version de las funciones y despues sincronizarlas cuando cambien.
+
+  /* 
+  // 1) Crear refs para apuntar siempre a la última versión de tus funciones
+      const loadMyNFTsRef = React.useRef(loadMyNFTs);
+      const loadAllListingsRef = React.useRef(loadAllListings);
+      const refreshProceedsRef = React.useRef(refreshProceeds);
+
+  // 2) Sincronizarlas cuando cambien
+      React.useEffect(() => { loadMyNFTsRef.current = loadMyNFTs; }, [loadMyNFTs]);
+      React.useEffect(() => { loadAllListingsRef.current = loadAllListings; }, [loadAllListings]);
+      React.useEffect(() => { refreshProceedsRef.current = refreshProceeds; }, [refreshProceeds]);
+  */
+)
 
 
-
-  /* ================= Render ================= */
+  /* ================= Render =================  */ 
 
 return (
   <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
     <Heading textAlign="center">NFT Marketplace</Heading>
 
-        {/* Mensajes UX , feedback visible para el usuario*/}
+        {/* Mensaje de error, si uiError es truthy visible para el usuario*/}
     {uiError && (
       <Box
         borderWidth="1px"
@@ -1066,6 +1218,7 @@ return (
       </Box>
     )}
 
+      {/* Mensaje de informacion, si uiInfo es truthy visible para el usuario*/}
     {uiInfo && (
       <Box
         borderWidth="1px"
@@ -1086,26 +1239,24 @@ return (
 
     {/* ===================================================================================== */}
 
-
+    {/* Si no hay wallet conectada mostramos boton de conexion, si hay wallet mostramos direcion publica y botones*/}
     {!isConnected ? (
       <Button onClick={() => open({ view: "Connect", namespace: "eip155" })} colorScheme="teal">
         Conectar Wallet
       </Button>
     ) : (
       <VStack>
-        <Text>Conectado como: {address}</Text>
+        <Text>Conectado como: {address?.slice(0, 6)}...{address?.slice(-4)}</Text>
         <HStack>
           <Button onClick={loadMyNFTs} isLoading={loadingNFTs} colorScheme="purple">
             Mis NFTs
           </Button>
-          <Button onClick={refreshProceeds} variant="outline">
+          <Button onClick={refreshProceeds} variant="outline"> {/* El variant="outline" hace que el color del boton sea dark*/}
             Actualizar saldo
             </Button>
           <Button onClick={withdrawProceeds} isDisabled={Number(proceedsEth) <= 0}>
             Retirar {proceedsEth} ETH
           </Button>
-
-  {/* Marketplace global */}
           <Button
             colorScheme="orange"
             isDisabled={loadingGlobal}
@@ -1121,8 +1272,9 @@ return (
           >
             Marketplace Global
         </Button>
+
           {!globalCursor.done && (
-          <Button onClick={() => loadAllListings(false)} isLoading={loadingGlobal} variant="outline">
+          <Button onClick={() => loadAllListings(false)} isLoading={loadingGlobal} isDisabled={loadingGlobal} variant="outline">
             Cargar más
           </Button>
           )}
@@ -1130,29 +1282,32 @@ return (
       </VStack>
     )}
 
-    {/* Formulario de minteo */}
-    <Input placeholder="Nombre del NFT" value={name} onChange={(e) => setName(e.target.value)} />
+
+    {/* Formulario de minteo*/}
+    <Input placeholder="Nombre del NFT" value={name} onChange={(e) => setName(e.target.value.slice(0,20))} />
     <Textarea placeholder="Descripción (opcional)" value={desc} onChange={(e) => setDesc(e.target.value)} />
     <HStack><Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} /></HStack>
     <Button onClick={handleMint} colorScheme="blue" isDisabled={!isConnected || !file || !name || busy}>
       {busy ? "Procesando..." : "Mint NFT"}
     </Button>
 
-    {/* Galería (Mis NFTs) */}
-{/* Mis NFTs – loading → skeletons */}
+    {/*========= Galería (Mis NFTs)=========*/}
+
+{/* Mis NFTs – loading → skeletons , entra si loadingNFts es true y si aun no hay NFts cargados*/}
 {loadingNFTs && myNFTs.length === 0 && (
   <>
     <DividerLine />
     <Heading size="lg">Mis NFTs</Heading>
     <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      {/* Crea un array temporal de 6 elementos vacios (_) y hace un .map sobre el. Asi generamos 6 skeletons placeholders de mientras que se cargan los NFts */}
       {Array.from({ length: 6 }).map((_, i) => (
         <Box key={i} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
           <Skeleton height="220px" />
           <Box mt="3">
-            <Skeleton height="20px" width="70%" />
-            <SkeletonText mt="2" noOfLines={2} spacing="2" />
-            <Skeleton mt="2" height="14px" width="40%" />
-            <Skeleton mt="3" height="32px" width="90px" />
+            <Skeleton height="20px" width="70%" /> {/*Simula el nombre del NFT*/}
+            <SkeletonText mt="2" noOfLines={2} spacing="2" /> {/*Simula la desripcion*/}
+            <Skeleton mt="2" height="14px" width="40%" /> {/*Simula el precio */}
+            <Skeleton mt="3" height="32px" width="90px" /> {/*Simula el boton*/}
           </Box>
         </Box>
       ))}
@@ -1160,7 +1315,7 @@ return (
   </>
 )}
 
-{/* Mis NFTs – datos */}
+{/* Mis NFTs – carga los NFTs */}
 {!loadingNFTs && myNFTs.length > 0 && (
   <>
     <DividerLine />
@@ -1203,6 +1358,7 @@ return (
                     </HStack>
                   )}
                 </>
+                // Si solamente eres el dueño del nft, pero no esta listado mostramos el boton de listar
               ) : (
                 iAmOwner && (
                   <Button
@@ -1222,7 +1378,7 @@ return (
   </>
 )}
 
-{/* Mis NFTs – vacío */}
+{/* Mis NFTs – vacío, no tienes ni NFTs listados ni sin listar o no estas en la red correcta*/}
 {!loadingNFTs && myNFTs.length === 0 && isConnected && (
   <>
     <DividerLine />
@@ -1233,26 +1389,28 @@ return (
   </>
 )}
 
-        {/* Paginación */}
-        {allListings.length > 0 && !globalCursor.done && (
-          <HStack justify="center" mt="4">
-            <Button
-              onClick={() => loadAllListings(false)}
-              isLoading={loadingGlobal}
-              variant="outline"
-            >
-              Cargar más
-            </Button>
-          </HStack>
-        )}
+{/* Paginación , Si hay listados cargados y aun quedan mas por traer, mostramos el boton cargar mas*/}
+{allListings.length > 0 && !globalCursor.done && (
+  <HStack justify="center" mt="4">
+    <Button
+      onClick={() => loadAllListings(false)}
+      isLoading={loadingGlobal}
+      variant="outline"
+    >
+      Cargar más
+    </Button>
+  </HStack>
+)}
 
-        {allListings.length > 0 && globalCursor.done && (
-          <Text mt="4" textAlign="center" color="gray.400">
-            Has llegado al inicio del deploy. No hay más listados antiguos.
-          </Text>
-        )}
+{/* Si no hay mas listados por cargar, mostramos mensaje informativo */}
+{allListings.length > 0 && globalCursor.done && (
+  <Text mt="4" textAlign="center" color="gray.400">
+    Has llegado al inicio del deploy. No hay más listados antiguos.
+  </Text>
+)}
 
-    {/* Marketplace Global */}
+                                        {/* =====================Marketplace Global===================== */}
+
     <DividerLine />
     <Heading size="lg">Marketplace Global</Heading>
 
@@ -1282,17 +1440,21 @@ return (
           maxW="160px"
         />
       </HStack>
-      <Box as="select" value={sort} onChange={(e) => setSort(e.target.value)} maxW="220px" px={3} py={2} borderWidth="1px" borderRadius="md" bg="blackAlpha.300">
+      {/* Desplegable, al hacer as="select" el box se renderiza como un select de HTML */}
+      <Box as="select" value={sort} onChange={(e) => setSort(e.target.value)} maxW="220px" px={3} py={2} borderWidth="1px" borderRadius="md" background={"black"}>
         <option value="recent">Más recientes</option>
         <option value="price-asc">Precio: menor a mayor</option>
         <option value="price-desc">Precio: mayor a menor</option>
       </Box>
-      <Text fontSize="sm" color="gray.400">
+      {/* Informativo de los resultados que ha obtenido con el filtro  */}
+      <Text fontSize="sm" color="gray.400"> 
         {filteredGlobal.length} resultados
       </Text>
     </HStack>
 
-{/* Lista o estado vacío (con skeletons) */}
+{/* Lista o estado vacío (con skeletons), se ejecuta cuando se esta cargando el estado global y aun no hay resultados porque no termino la carga inicial
+Se renderizan los Skeletons */}
+
 {loadingGlobal && filteredGlobal.length === 0 ? (
   // Primera carga: solo skeletons
   <SimpleGrid columns={[1, 2, 3]} spacing={5}>
@@ -1300,15 +1462,18 @@ return (
       <NFTCardSkeleton key={`global-skel-${i}`} />
     ))}
   </SimpleGrid>
+
+  // Si ya esta cargado (loadingGlobal=false) y existen filtros(hay resultados)
 ) : filteredGlobal.length > 0 ? (
   <>
     <SimpleGrid columns={[1, 2, 3]} spacing={5}>
       {filteredGlobal.map((nft) => {
         const me = address?.toLowerCase?.() || "";
-        const cantBuy = (nft.seller || "").toLowerCase() === me; // es mi propio listado
+        const cantBuy = (nft.seller || "").toLowerCase() === me; // es mi propio nft listado
 
         return (
           <Box
+            // Creamos la key con el token y el seller ya que el seller puede cambiar, si alguien lo lista y otro lo compra el seller es diferente, React lo detectara y lo podra mostrar de nuevo cuando este NFT se liste de nuevo con otro seller diferente. 
             key={`${nft.tokenId}-${nft.seller}`}
             borderWidth="1px"
             borderRadius="lg"
@@ -1328,11 +1493,17 @@ return (
               size="sm"
               colorScheme="green"
               mt="2"
+              // Aqui desactiva el boton al hacer click en comprar, mientras se carga, el !! fuerza booleano
               isLoading={!!txLoading[kBuy(nft.tokenId)]}
               isDisabled={cantBuy || isTokenBusy(nft.tokenId)}
+              // Señal de accesibilidad, lectores de pantalla saben que el control esta ocupado
               aria-busy={!!txLoading[kBuy(nft.tokenId)]}
+              // A nivel de CSS, ignora clics/hover si el token esta en busy
               style={isTokenBusy(nft.tokenId) ? { pointerEvents: "none" } : undefined}
-              title={cantBuy ? "No puedes comprar tu propio NFT" : undefined}
+              // Tooltip que se muestra al dejar el raton encima del boton en el caso de que seas el owner del NFT
+              title={cantBuy ? "No puedes comprar tu propio NFT" : undefined} 
+
+              // Al clicar, runWithLock bloquea el boton y se ejecuta la funcion buyToken
               onClick={(e) => {
                 const key = kBuy(nft.tokenId);
                 runWithLock(key, e, () =>
@@ -1346,21 +1517,21 @@ return (
         );
       })}
 
-      {/* Mientras se cargan más páginas, añade 2–3 skeletons al final para evitar “saltos” */}
+      {/* Mientras se cargan más páginas, añadimos 3 skeletons al final para evitar saltos, genera un array temporal con los 3 skeletons*/}
       {loadingGlobal &&
         Array.from({ length: 3 }).map((_, i) => (
           <NFTCardSkeleton key={`global-skel-inline-${i}`} />
         ))}
     </SimpleGrid>
 
-    {/* Botón de carga adicional */}
+    {/* Botón de carga adicional si hay NFts listados para cargar */}
     {!globalCursor.done && (
       <Button
-        onClick={() => loadAllListings(false)}
+        onClick={() => loadAllListings(false)} // False para que no resetee lo cargado, sino que añada mas resultados al final
         isLoading={loadingGlobal}
         variant="outline"
         mt={4}
-      >
+        >
         Cargar más
       </Button>
     )}
@@ -1372,10 +1543,8 @@ return (
   </Box>
 )}
 
+{/* === Modal de precio inline para listar o actualizar precio NFT  === */}
 
-
-
-    {/* === Modal de precio inline === */}
 {priceModal?.isOpen && (
   <Box
     position="fixed"
@@ -1384,11 +1553,11 @@ return (
     display="flex"
     alignItems="center"
     justifyContent="center"
-    zIndex={1000}
+    zIndex={1000} // Asegura que quede por encima de cualquier otro elemento (Que no quede taopado por nada)
   >
     <Box bg="black" p="6" borderRadius="md" minW={["90vw","420px"]} borderWidth={"1px"} borderColor={"gray.600"} boxShadow={"lg"}>
       
-      {/* 🔥 Título dinámico */}
+      {/* Título dinámico, priceModal puedes ser list o update */}
       <Heading size="md" textAlign="center" color="white">
         {priceModal.mode === "list" ? "📌 Listar NFT" : "✏️ Actualizar precio"}
       </Heading>

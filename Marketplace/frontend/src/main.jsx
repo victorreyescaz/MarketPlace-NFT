@@ -11,7 +11,7 @@ import { Provider } from './components/ui/provider'
 
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
-import { sepolia, mainnet } from "@reown/appkit/networks";
+import { sepolia, mainnet } from "@reown/appkit/networks"; 
 
 
 // 1. Get projectId
@@ -24,7 +24,7 @@ const networks = [sepolia, mainnet];
 const metadata = {
   name: "NFT Marketplace",
   description: "NFT Marketplace",
-  url: "http://127.0.0.1:5173", // origin must match your domain & subdomain
+  url: window.location.origin,
   icons: ["https://avatars.mywebsite.com/"],
 };
 

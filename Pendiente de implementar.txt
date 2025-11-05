@@ -14,10 +14,7 @@ Opcional: deshabilitar botones si no es Sepolia.
 
 Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en otra red.
 
-___________________________________________________________________________________________________________________________________________
-
---- SEGURIDAD VARIABLES DE ENTORNO. HAY QUE SEPARAR FRONTEND Y BACKEND, UN .ENV EN CADA UNO, EN EL .ENV DEL BACKEND INTRODUCIR LAS VARIABLES SENSIBLES QUE NO DEBEN SALIR DEL SERVIDOR. SOLO LAS USARA MI CODIGO HARDHAT, SCRIPTS DE NODE O EL SERVIDOR, NUNCA REACT/VITE 
-EN EL .ENV DEL FRONTEND VARIBLES COMO NFT_ADDRESS, MARKET_ADDRESS, 
+___________________________________________________________________________________________________________________________________________ 
 
 --- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo
 
@@ -49,6 +46,8 @@ EN EL .ENV DEL FRONTEND VARIBLES COMO NFT_ADDRESS, MARKET_ADDRESS,
 -- Introducir spinners en momentos de carga que vea necesario
 
 -- Al listar un nft, cuando se esta ejecutando la transaccion bloquear el boton para no poder darle a listar otra vez y que te genere otro popup en metamask
+
+-- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton
 
 ___________________________________________________________________________________________________________________________________________
 
