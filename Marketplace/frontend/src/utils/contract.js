@@ -1,6 +1,6 @@
 /* Helper para el frontend
 
-  Centraliza todo lo necesario para interactuar con los contrados desde React sin tener que repetir codigo
+  Centraliza todo lo necesario para interactuar con los contratos desde React sin tener que repetir codigo
   en cada componente
 */
 
@@ -9,10 +9,16 @@ import { BrowserProvider, Contract, parseEther } from "ethers";
 import NFT_ABI from "../abis/NFT.json";
 import MARKET_ABI from "../abis/Marketplace.json";
 
-// Direcciones en minúsculas para evitar errores de checksum
-export const NFT_ADDRESS = "0xe23fcfa688bd1ff6d0f31bac7cd7d4965d0c285e";
-export const MARKET_ADDRESS =
-  "0x47576A1704597adF6bF9268f1125388748908a2a".toLowerCase();
+// Direcciones desplegadas y ABI's
+export const NFT_ADDRESS = import.meta.env.VITE_NFT_ADDRESS;
+export const MARKET_ADDRESS = import.meta.env.VITE_MARKET_ADDRESS;
+
+// Para instanciar contratos en el desarrollo de la dApp.
+// Si en el JSON hay solo el array => úsalo directo; si es artifact completo => usa .abi
+export const NFT_IFACE = Array.isArray(NFT_ABI) ? NFT_ABI : NFT_ABI.abi;
+export const MARKET_IFACE = Array.isArray(MARKET_ABI)
+  ? MARKET_ABI
+  : MARKET_ABI.abi;
 
 // Helpers para instanciar contratos
 

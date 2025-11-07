@@ -1,0 +1,287 @@
+import { useCallback, useMemo, useState } from "react";
+import { Contract, formatEther } from "ethers";
+import { getReadProvider, fetchListedRange, withRetry } from "../services/rpcs";
+import { scanCollectionListings } from "../services/pinata";
+import {
+  NFT_ADDRESS,
+  NFT_IFACE,
+  MARKET_ADDRESS,
+  MARKET_IFACE,
+} from "../utils/contract";
+import {
+  makeKey,
+  sortListings,
+  mergeBatchIntoState as mergeListingsBatch,
+} from "../utils/helpers_loadAllListings";
+
+const MARKET_DEPLOY_BLOCK = Number(
+  import.meta.env.VITE_MARKET_DEPLOY_BLOCK || 0
+);
+const GLOBAL_BATCH_TARGET = Number(
+  import.meta.env.VITE_GLOBAL_BATCH_TARGET || 10
+);
+const GLOBAL_MAX_PAGES = Number(import.meta.env.VITE_GLOBAL_MAX_PAGES || 6);
+const BLOCK_PAGE = Number(import.meta.env.VITE_BLOCK_PAGE || 80);
+const PAGE_DELAY_MS = Number(import.meta.env.VITE_PAGE_DELAY_MS || 1200);
+const READ_RPC = (import.meta.env.VITE_RPC_SEPOLIA ?? "").trim();
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function useGlobalListings({ walletProvider, showError, showInfo }) {
+  const [allListings, setAllListings] = useState([]);
+  const [globalCursor, setGlobalCursor] = useState({ nextTo: 0, done: false });
+  const [loadingGlobal, setLoadingGlobal] = useState(false);
+
+  const [q, setQ] = useState("");
+  const [minP, setMinP] = useState("");
+  const [maxP, setMaxP] = useState("");
+  const [sort, setSort] = useState("recent");
+
+  const resetFilters = useCallback(() => {
+    setQ("");
+    setMinP("");
+    setMaxP("");
+    setSort("recent");
+  }, []);
+
+  const clearListings = useCallback(() => setAllListings([]), []);
+
+  const mergeBatchIntoState = useCallback(
+    (batch) => {
+      if (!batch?.length) return;
+      setAllListings((prev) => mergeListingsBatch(prev, batch));
+    },
+    [setAllListings]
+  );
+
+  const loadAllListings = useCallback(
+    async (reset = true, target = GLOBAL_BATCH_TARGET) => {
+      if (loadingGlobal) return;
+      if (!READ_RPC && !walletProvider) return;
+
+      try {
+        setLoadingGlobal(true);
+
+        const provider = await getReadProvider(walletProvider);
+        const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
+        const nft = new Contract(NFT_ADDRESS, NFT_IFACE, provider);
+
+        const map = new Map(
+          (reset ? [] : allListings).map((it) => [makeKey(it), it])
+        );
+
+        if (reset) {
+          const scanned = await scanCollectionListings(nft, market, 200);
+          if (scanned.length > 0) {
+            for (const s of scanned) {
+              map.set(makeKey(s), {
+                ...s,
+                blockNumber: s.blockNumber ?? 0,
+              });
+            }
+            setAllListings(Array.from(map.values()).sort(sortListings));
+          } else {
+            showInfo?.("Escaneando listado actual…");
+          }
+        }
+
+        let collected = 0;
+        let pages = 0;
+
+        const latest = await provider.getBlockNumber();
+        let to = reset || !globalCursor.nextTo ? latest : globalCursor.nextTo;
+        let done = false;
+
+        while (pages < GLOBAL_MAX_PAGES && collected < target && !done) {
+          const fromDesired = Math.max(
+            MARKET_DEPLOY_BLOCK,
+            to - (BLOCK_PAGE - 1)
+          );
+
+          const { logs: listedLogs, usedFrom } = await fetchListedRange(
+            market,
+            fromDesired,
+            to
+          );
+
+          const pageBatch = [];
+          for (const log of listedLogs) {
+            const { nft: nftAddr, tokenId, seller } = log.args;
+            const blockNumber = log.blockNumber;
+
+            if (nftAddr.toLowerCase() !== NFT_ADDRESS.toLowerCase()) continue;
+
+            const keyPreview = makeKey({
+              tokenId: tokenId.toString(),
+              seller,
+            });
+            if (map.has(keyPreview)) continue;
+
+            try {
+              const listing = await withRetry(() =>
+                market.getListing(NFT_ADDRESS, tokenId)
+              );
+              if (listing.price > 0n) {
+                let uri = await withRetry(() => nft.tokenURI(tokenId));
+                if (uri.startsWith("ipfs://")) {
+                  uri = uri.replace(
+                    "ipfs://",
+                    "https://gateway.pinata.cloud/ipfs/"
+                  );
+                }
+                const meta = await withRetry(() =>
+                  fetch(uri).then((r) => r.json())
+                );
+                let img = meta.image;
+                if (img?.startsWith("ipfs://")) {
+                  img = img.replace(
+                    "ipfs://",
+                    "https://gateway.pinata.cloud/ipfs/"
+                  );
+                }
+
+                const sellerLower = (
+                  listing.seller ||
+                  seller ||
+                  ""
+                ).toLowerCase();
+                const item = {
+                  tokenId: tokenId.toString(),
+                  name: meta.name,
+                  description: meta.description,
+                  image: img,
+                  seller: sellerLower,
+                  priceEth: formatEther(listing.price),
+                  blockNumber,
+                };
+
+                map.set(makeKey(item), item);
+                pageBatch.push(item);
+              }
+            } catch (e) {
+              console.warn(
+                "[Global] no resolví tokenId=",
+                tokenId?.toString?.(),
+                e?.message || e
+              );
+            }
+          }
+
+          if (pageBatch.length) mergeBatchIntoState(pageBatch);
+
+          collected += pageBatch.length;
+          done = usedFrom <= MARKET_DEPLOY_BLOCK;
+          to = usedFrom - 1;
+          pages++;
+
+          if (!done && collected < target && pages < GLOBAL_MAX_PAGES) {
+            await sleep(PAGE_DELAY_MS);
+          }
+        }
+
+        setAllListings(Array.from(map.values()).sort(sortListings));
+        setGlobalCursor({ nextTo: to, done });
+      } catch (err) {
+        showError?.(err, "Error cargando el Marketplace Global");
+      } finally {
+        setLoadingGlobal(false);
+        await sleep(PAGE_DELAY_MS);
+      }
+    },
+    [
+      allListings,
+      globalCursor,
+      loadingGlobal,
+      mergeBatchIntoState,
+      showError,
+      showInfo,
+      walletProvider,
+    ]
+  );
+
+  const filteredGlobal = useMemo(() => {
+    let arr = Array.isArray(allListings) ? [...allListings] : [];
+    const raw = q.trim();
+
+    if (raw) {
+      const digitsOnly = /^\d+$/.test(raw);
+      const digitsFromRaw = raw.replace(/\D/g, "");
+      const needle = raw.toLowerCase();
+
+      if (digitsOnly) {
+        arr = arr.filter((it) => String(it.tokenId ?? "") === raw);
+      } else if (digitsFromRaw) {
+        arr = arr.filter((it) => {
+          const tokenStr = String(it.tokenId ?? "");
+          const inId = tokenStr === digitsFromRaw;
+
+          const inName = (it.name || "").toLowerCase().includes(needle);
+          const inDesc = (it.description || "").toLowerCase().includes(needle);
+          const inSeller = (it.seller || "").toLowerCase().includes(needle);
+
+          return inId || inName || inDesc || inSeller;
+        });
+      } else {
+        arr = arr.filter((it) => {
+          const inName = (it.name || "").toLowerCase().includes(needle);
+          const inDesc = (it.description || "").toLowerCase().includes(needle);
+          const inSeller = (it.seller || "").toLowerCase().includes(needle);
+          return inName || inDesc || inSeller;
+        });
+      }
+    }
+
+    const min = parseFloat(minP);
+    const max = parseFloat(maxP);
+    const isNum = (x) => Number.isFinite(x);
+
+    if (isNum(min)) {
+      arr = arr.filter((it) => Number.parseFloat(it.priceEth ?? "0") >= min);
+    }
+    if (isNum(max)) {
+      arr = arr.filter((it) => Number.parseFloat(it.priceEth ?? "0") <= max);
+    }
+
+    if (sort === "price-asc") {
+      arr.sort(
+        (a, b) =>
+          Number.parseFloat(a.priceEth || "0") -
+          Number.parseFloat(b.priceEth || "0")
+      );
+    } else if (sort === "price-desc") {
+      arr.sort(
+        (a, b) =>
+          Number.parseFloat(b.priceEth || "0") -
+          Number.parseFloat(a.priceEth || "0")
+      );
+    } else {
+      arr.sort((a, b) => {
+        const ba = a.blockNumber ?? 0;
+        const bb = b.blockNumber ?? 0;
+
+        if (bb !== ba) return bb - ba;
+        return Number(b.tokenId || 0) - Number(a.tokenId || 0);
+      });
+    }
+
+    return arr;
+  }, [allListings, q, minP, maxP, sort]);
+
+  return {
+    allListings,
+    filteredGlobal,
+    loadingGlobal,
+    globalCursor,
+    loadAllListings,
+    clearListings,
+    q,
+    minP,
+    maxP,
+    sort,
+    setQ,
+    setMinP,
+    setMaxP,
+    setSort,
+    resetFilters,
+  };
+}
