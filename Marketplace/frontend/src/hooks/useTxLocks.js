@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { useStatusBanner } from "../components/ui/context/StatusBannerContext";
+import { useStatusBanner } from "./useStatusBanner";
 
 export function useTxLocks() {
   const { showError, showInfo } = useStatusBanner();

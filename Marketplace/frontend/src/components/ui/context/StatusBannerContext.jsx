@@ -1,17 +1,17 @@
 //   ===== Feedback visible de errores para el usuario =====
 
-import { createContext, useState } from "react";
+import { useState } from "react";
+import { StatusBannerContext } from "./StatusBannerContext";
 
-export const StatusBannerContext = createContext(null);
-
-export function StatusBannerProvider({children}) {
+export function StatusBannerProvider({ children }) {
   const [uiError, setUiError] = useState(null); // string | null
   const [uiInfo, setUiInfo] = useState(null); // string | null
 
   const showError = (eOrMsg, fallback) => {
-  const msg = typeof eOrMsg === "string" ? eOrMsg : eOrMsg?.message || fallback;
-  console.error("[UI Error]", msg, eOrMsg);
-  setUiError(msg);
+    const msg =
+      typeof eOrMsg === "string" ? eOrMsg : eOrMsg?.message || fallback;
+    console.error("[UI Error]", msg, eOrMsg);
+    setUiError(msg);
   };
 
   const showInfo = (msg, autoCloseMs = 3500) => {
@@ -19,11 +19,18 @@ export function StatusBannerProvider({children}) {
     if (autoCloseMs) setTimeout(() => setUiInfo(null), autoCloseMs);
   };
 
-  const value = {uiError, setUiError, uiInfo, setUiInfo, showError, showInfo}
+  const value = {
+    uiError,
+    setUiError,
+    uiInfo,
+    setUiInfo,
+    showError,
+    showInfo,
+  };
 
-return (
-  <StatusBannerContext.Provider value={value}>
-    {children}
-  </StatusBannerContext.Provider>
+  return (
+    <StatusBannerContext.Provider value={value}>
+      {children}
+    </StatusBannerContext.Provider>
   );
 }

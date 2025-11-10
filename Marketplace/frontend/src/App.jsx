@@ -1,4 +1,4 @@
-import React, {useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { VStack } from "@chakra-ui/react";
 import { useAppKitProvider, useAppKitAccount, useAppKit } from "@reown/appkit/react";
 /* 
@@ -8,8 +8,7 @@ useAppKitAccount: info de la cuenta (address conectada, chainId, estado conectad
 
 useAppKit: control del modal (abrir/cerrar, etc.).
 */
-import { ethers } from "ethers";
-import { useStatusBanner } from "./components/ui/context/StatusBannerContext";
+import { useStatusBanner } from "./hooks/useStatusBanner";
 import { MintSection } from "./components/ui/mint/MintSection";
 import { PriceModal } from "./components/ui/modals/PriceModal";
 import { MyNFTSection } from "./components/ui/mynfts/MyNFTSection"
@@ -31,7 +30,7 @@ function App() {
   const { address, isConnected } = useAppKitAccount({ namespace: "eip155" });
   const { open } = useAppKit();
 
-  const {showError, showInfo} = useStatusBanner();
+  const {showError, showInfo} = useStatusBanner(); 
 
   const {
     myNFTs,
@@ -133,7 +132,10 @@ function App() {
     loadAllListings,
     loadingGlobal,
     globalCursor,
-    resetFilters,
+    setQ,
+    setMinP,
+    setMaxP,
+    setSort,
   };
 
   const {
@@ -156,30 +158,29 @@ function App() {
     loadAllListings,
   });
 
-    // Funciones que controlan la apertura y cierre del modal de precio usado para listar o actualizar NFTs en el marketplace
-  useWalletEvents({
-    walletProvider,
-    onAccountsChanged: async (accounts) => {
-      if (!accounts || accounts.length === 0) {
-        address(null);
-        isConnected(false);
-        setMyNFTs([]);
-        return;
-      }
-      const newAddress = accounts[0].toLowerCase();
-      address(newAddress);
-      await loadMyNFTs();
-      await refreshProceeds();
-    },
-    onChainChanged: async (chainId) => {
-      console.log("Red cambiada a:", chainId);
-      const newProvider = new ethers.BrowserProvider(window.ethereum);
-      walletProvider(newProvider);
-      await loadAllListings(true);
-      await loadMyNFTs();
-      await refreshProceeds();
-    },
-  });
+    useWalletEvents({
+      walletProvider,
+      onAccountsChanged: async (accounts) => {
+        if (!accounts?.length) {
+          setMyNFTs([]);
+          return;
+        }
+        await loadMyNFTs(accounts[0]);
+        await refreshProceeds();
+      },
+      onChainChanged: async () => {
+        await loadAllListings(true);
+        await loadMyNFTs();
+        await refreshProceeds();
+      },
+    });
+
+    useEffect(() => {
+      if (!walletProvider || !address || !isConnected) return;
+      loadMyNFTs();
+      refreshProceeds();
+    }, [address, walletProvider, isConnected, loadMyNFTs, refreshProceeds]);
+
 
 
   /* ===================================================== Render ======================================================================  */ 

@@ -7,7 +7,8 @@
 import React from 'react'
 import ReactDOM from "react-dom/client"
 import App from "./App";
-import { Provider } from './components/ui/provider'
+import { Provider } from "./components/ui/provider";
+import { StatusBannerProvider } from "./components/ui/context/StatusBannerContext.jsx";
 
 import { createAppKit } from "@reown/appkit/react";
 import { EthersAdapter } from "@reown/appkit-adapter-ethers";
@@ -42,10 +43,12 @@ createAppKit({
 // React.StrictMode ayuda a detectar errores de render en desarrollo
 // Provider de chakra
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <Provider>
-    <App/>
+      <StatusBannerProvider>
+        <App />
+      </StatusBannerProvider>
     </Provider>
-  </React.StrictMode>,
-)
+  </React.StrictMode>
+);

@@ -2,7 +2,7 @@ import { Box, Heading, SimpleGrid, Skeleton, SkeletonText, Text } from "@chakra-
 import { DividerLine } from "../common/dividerLine";
 import { OwnerNFTCard } from "../nft/NFTCard";
 
-function LoadingSkeletons() {
+export function LoadingSkeletons() {
   return (
     <>
       <DividerLine />
@@ -24,7 +24,7 @@ function LoadingSkeletons() {
   );
 }
 
-function EmptyState() {
+export function EmptyState() {
   return (
     <>
       <DividerLine />

@@ -4,7 +4,9 @@
   en cada componente
 */
 
-// BrowserProvider: provider conectado a Metamask ; Contract: clase para crear instancias de contrato ; parseEther: helper conversion ETH=>WEI
+// BrowserProvider: provider conectado a Metamask
+// Contract: clase para crear instancias de contrato
+// parseEther: helper conversion ETH=>WEI
 import { BrowserProvider, Contract, parseEther } from "ethers";
 import NFT_ABI from "../abis/NFT.json";
 import MARKET_ABI from "../abis/Marketplace.json";

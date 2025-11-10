@@ -1,5 +1,5 @@
 import { Box, Button, HStack, Text } from "@chakra-ui/react";
-import { useStatusBanner } from "../context/StatusBannerContext";
+import { useStatusBanner } from "../../../hooks/useStatusBanner";
 
 export function StatusBanners() {
   const { uiError, setUiError, uiInfo, setUiInfo } = useStatusBanner();

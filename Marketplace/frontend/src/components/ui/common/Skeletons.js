@@ -1,8 +1,10 @@
 // ========= Helper indicadores de carga, mientras se cargan los nfts =========
 
+import { Skeleton } from "@chakra-ui/react";
+
 const GLOBAL_SKELETON_COUNT = 6; // nº de tarjetas skeleton en la primera carga
 
-// Card “placeholder” para una NFT. Componente de React
+// Card placeholder para una NFT. Componente de React
 function NFTCardSkeleton() {
   return (
     <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
@@ -33,3 +35,5 @@ function SkeletonGrid({ count = 6 }) {
     </SimpleGrid>
   );
 }
+
+export { NFTCardSkeleton, SkeletonGrid };

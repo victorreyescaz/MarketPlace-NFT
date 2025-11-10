@@ -9,7 +9,7 @@ export default defineConfig({
       interval: 100, //  frecuencia del polling en ms
     },
     port: 5173,
-    host: "127.0.0.1",
+    host: "localhost", // MetaMask solo inyecta window.ethereum en localhost/http(s)
   },
   test: {
     globals: true,
