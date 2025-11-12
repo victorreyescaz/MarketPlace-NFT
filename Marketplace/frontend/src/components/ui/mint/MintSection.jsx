@@ -14,7 +14,7 @@ export function MintSection({
   const [file, setFile] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
 
-  const onPickFile = (e) => setFile(e.target.files?.[0] || null);
+  const onPickFile = (selectedFile) => setFile(selectedFile || null);
 
   const { handleMint } = useMinting({
     walletProvider,

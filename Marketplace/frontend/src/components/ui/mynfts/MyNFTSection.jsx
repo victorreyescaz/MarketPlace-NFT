@@ -41,6 +41,7 @@ export function MyNFTSection({
   myNFTs,
   address,
   kCancel,
+  kList,
   txLoading,
   isTokenBusy,
   runWithLock,
@@ -70,6 +71,7 @@ export function MyNFTSection({
           const me = address?.toLowerCase?.() || "";
           const ownerLower = nft.owner?.toLowerCase?.() || "";
           const cancelKey = kCancel(nft.tokenId);
+          const listKey = kList(nft.tokenId);
 
           return (
             <OwnerNFTCard
@@ -77,6 +79,7 @@ export function MyNFTSection({
               nft={nft}
               isOwner={ownerLower === me}
               isBusy={isTokenBusy(nft.tokenId)}
+              listLoading={!!txLoading[listKey]}
               cancelLoading={!!txLoading[cancelKey]}
               onCancel={(item, event) => {
                 const key = kCancel(item.tokenId);
@@ -85,7 +88,11 @@ export function MyNFTSection({
                 });
               }}
               onUpdatePrice={(item) => openUpdateModal(item.tokenId, item.priceEth, item.name)}
-              onList={(item) => openListModal(item.tokenId, item.name)}
+              onList={(item, event) => 
+                runWithLock(listKey, event, () =>
+                openListModal(item.tokenId, item.name)
+                )
+              }
             />
           );
         })}

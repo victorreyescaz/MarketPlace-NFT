@@ -5,6 +5,7 @@ export function OwnerNFTCard({
     isOwner,
     isBusy,
     cancelLoading,
+    listLoading,
     onCancel,
     onUpdatePrice,
     onList,
@@ -42,11 +43,11 @@ export function OwnerNFTCard({
                 )}
             </>
         ) : (
-                // Si solamente eres el dueño del nft, pero no esta listado mostramos el boton de listar
                 isOwner && (
                     <Button
                         size="sm"
-                        isDisabled={isBusy}
+                        isDisabled={isBusy || listLoading}
+                        isLoading={listLoading}
                         onClick={() => onList?.(nft)}>
                     Listar
                   </Button>

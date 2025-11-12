@@ -11,12 +11,24 @@ export function PriceModal({
   
 }) {
   const [price, setPrice] = useState(defaultPrice ?? "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setPrice(defaultPrice ?? "");
+      setIsSubmitting(false);
     }
   }, [defaultPrice, isOpen]);
+
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try{
+      await onConfirm?.(price);
+    } finally{
+      setIsSubmitting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -69,7 +81,9 @@ export function PriceModal({
           </Button>
           <Button
             colorScheme="blue"
-            onClick={() => onConfirm?.(price)}
+            isLoading={isSubmitting}
+            isDisabled={isSubmitting}
+            onClick={handleConfirm}
           >
             Confirmar
           </Button>

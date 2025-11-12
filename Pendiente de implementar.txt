@@ -1,123 +1,47 @@
-Pendiente de implementar más adelante:
+___________________________________________________________________________________________________________________________________________
 
-Funcionalidad:
+--- Controlar si cambiamos de red en la wallet, ahora al hacerlo si quieres mintear un nft no te deja porque no tienes para pagar el gas. 
+Recuerdo: Redes que se pueden utilizar en el marketplace, Arbitrum y Sepolia.
 
-Añadir verificación y cambio automático de red a Sepolia antes de ejecutar transacciones o lecturas.
-
-Usar wallet_switchEthereumChain y, si la red no está añadida, wallet_addEthereumChain.
-
-Guardar estado isSepolia para deshabilitar botones y mostrar advertencias.
-
-Código listo:
-
-Opcional: deshabilitar botones si no es Sepolia.
-
-Evitar errores RPC -32603 y Internal JSON-RPC error cuando la wallet está en otra red.
-
-___________________________________________________________________________________________________________________________________________ 
-
---- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo
-
---- Poder mintear mas de un NFT a la vez, una coleccion
-
---- Hacer un archivo HTML con el esquema de la web?
-
--- Cuando cambie de wallet, que se vacie Mis Nfts (Ahora mismo se quedan los de la wallet anterior)
-
--- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
-
--- Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.
-    Implementarla en el frontend para poder quemar tokens
-
--- Boton actualizar saldo añadir mensaje estilo "Tu saldo ha sido actualizado"
-
--- Anclar header para que cuando hagas scroll para abajo se mantenga visible (asi podemos ver las alertas y acceder a los botones)
-
--- Boton connect wallet appkit (es mas bonito e incluso sale el saldo actual de la wallet). Al entrar en la dApp que no te salte el popup de metamask para conectar la wallet, que puedas explorar la dApp sin conectarte
+--- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo. No se si es posible hacerlo.
 
 -- Añadir pequeño footer con informacion del creador o lo que se me ocurra
 
--- A la hora de listar, cambiar precio o comprar un nft, mostrar un pequeño aviso con el valor equivalente en USD(con fetch a CoinGecko)
-
--- Echar un ojo a wallet.js, se utiliza web3Modal, en el main.jsx se utiliza appkit, es redundante, utilizar appkit. Appkit maneja walletConnect y injected wallets(metamask, brave, coinbase....) Asi evitaremos tener que usar el archivo wallet.js
+-- A la hora de listar, cambiar precio o comprar un nft, mostrar un pequeño aviso con el valor equivalente en USD(con fetch a CoinGecko o coinmarketcap)
 
 -- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
 
 -- Introducir spinners en momentos de carga que vea necesario
 
--- Al listar un nft, cuando se esta ejecutando la transaccion bloquear el boton para no poder darle a listar otra vez y que te genere otro popup en metamask
+-- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton. Poner un aviso si clicamos para retirar teniendo 0.0ETH
 
--- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton
+-- Cambiar todos los alert por showInfo, queda mas bonito
+
+--- Poder mintear mas de un NFT a la vez, una coleccion
+
+-- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
+Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.Implementarla en el frontend para poder quemar tokens
+
+-- Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
+
+--  Revisar variables de entorno del frontend, mover las que sean criticas al backend e utilizar el marketplaceApi para poder acceder a ellas desde el frontend
 
 ___________________________________________________________________________________________________________________________________________
 
-
-Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
-
-Soporte multi-colección: si algún día quieres que el marketplace soporte varios contratos NFT, ya lo tienes medio hecho (con el nftAddr).
-
-___________________________________________________________________________________________________________________________________________
-
-
-Si te apetece, siguiente tanda de mejoras (rápidas y útiles):
-
-Auto-refresh del Marketplace Global tras comprar/cancelar/actualizar precio
-
-Después de await loadMyNFTs(), lanza await loadAllListings(true) para reflejar el stock al momento.
-
-Badges de estado en las cards
-
-“Listado”, “No listado”, “Tuyo” (ya muestras “Tu NFT”, pero puedes añadir un Badge en la card).
-
-Toasts agradables (si migras banners a useToast de Chakra)
-
-success al mintear/comprar/cancelar; error con shortMessage/reason.
-
-Índice local + cache de metadatos
-
-Memoriza tokenURI → metadata en un Map (o localStorage) para evitar refetch en cada apertura.
-
-Histórico de actividad (on-chain)
-
+-- Auto-refresh del Marketplace Global tras listar/comprar/cancelar/actualizar precio. Añadir ShowInfos como hacemos cuando compramos, iniciando peticion... iniciando transaccion... NFT comprado
 Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para un marketplace.
 
-UX: “Volver / Cambiar vista”
+-- Badges de estado en las cards
+“Listado”, “No listado”, “Tuyo” (ya muestras “Tu NFT”, pero puedes añadir un Badge en la card).
 
-Toggle entre “Mis NFTs” y “Marketplace Global” (estado view), ocultando la otra sección.
+-- Toasts agradables (si migras banners a useToast de Chakra)
 
-Reintentos dirigidos
+-- Índice local + cache de metadatos
 
-Ya tienes withRetry; añade backoff leve en fetch(uri) y market.getListing por robustez extra.
+-- Memoriza tokenURI → metadata en un Map (o localStorage) para evitar refetch en cada apertura.
 
-Dime cuál quieres atacar ahora y lo integramos en tu App.jsx sin romper nada. 🚀
+-- Histórico de actividad (on-chain)
 
+-- UX: “Volver / Cambiar vista”
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-- Toggle entre “Mis NFTs” y “Marketplace Global” (estado view), ocultando la otra sección.

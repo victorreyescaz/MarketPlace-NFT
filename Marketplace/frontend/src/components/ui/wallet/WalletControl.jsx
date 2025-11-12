@@ -6,16 +6,15 @@ import {
 
 const WalletControls = ({
   isConnected,
-  address = "",
   proceedsEth = "0",
   loadingNFTs = false,
   loadingGlobal = false,
   globalCursor = { done: true },
-  openWalletModal,
   loadMyNFTs,
   refreshProceeds,
   withdrawProceeds,
   loadAllListings,
+  showInfo,
   setQ = () => {},
   setMinP = () => {},
   setMaxP = () => {},
@@ -43,7 +42,11 @@ const WalletControls = ({
               Mis NFTs
             </Button>
 
-            <Button onClick={refreshProceeds} variant="outline">
+            <Button onClick = {() => {
+              showInfo("Saldo actualizado con éxito");
+              refreshProceeds();
+            }}
+              variant="outline">
               Actualizar saldo
             </Button>
 

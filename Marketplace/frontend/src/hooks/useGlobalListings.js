@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Contract, formatEther } from "ethers";
 import { getReadProvider, fetchListedRange, withRetry } from "../services/rpcs";
 import { scanCollectionListings } from "../services/pinata";
+import { fetchGlobalListings } from "../services/marketplaceApi";
 import {
   NFT_ADDRESS,
   NFT_IFACE,
@@ -23,11 +24,26 @@ const GLOBAL_BATCH_TARGET = Number(
 const GLOBAL_MAX_PAGES = Number(import.meta.env.VITE_GLOBAL_MAX_PAGES || 6);
 const BLOCK_PAGE = Number(import.meta.env.VITE_BLOCK_PAGE || 80);
 const PAGE_DELAY_MS = Number(import.meta.env.VITE_PAGE_DELAY_MS || 1200);
-const READ_RPC = (import.meta.env.VITE_RPC_SEPOLIA ?? "").trim();
+const READ_RPC = (import.meta.env.RPC_SEPOLIA ?? "").trim();
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function useGlobalListings({ walletProvider, showError, showInfo }) {
+const normalizeListing = (raw = {}) => ({
+  tokenId: String(raw.tokenId ?? ""),
+  name: raw.name ?? "",
+  description: raw.description ?? "",
+  image: raw.image ?? "",
+  seller: (raw.seller || "").toLowerCase(),
+  priceEth: raw.priceEth ?? "0",
+  blockNumber: Number(raw.blockNumber ?? 0),
+});
+
+export function useGlobalListings({
+  walletProvider,
+  preferBackend: preferBackendProp,
+  showError,
+  showInfo,
+}) {
   const [allListings, setAllListings] = useState([]);
   const [globalCursor, setGlobalCursor] = useState({ nextTo: 0, done: false });
   const [loadingGlobal, setLoadingGlobal] = useState(false);
@@ -36,6 +52,8 @@ export function useGlobalListings({ walletProvider, showError, showInfo }) {
   const [minP, setMinP] = useState("");
   const [maxP, setMaxP] = useState("");
   const [sort, setSort] = useState("recent");
+
+  const preferBackend = preferBackendProp ?? (!walletProvider && !READ_RPC);
 
   const resetFilters = useCallback(() => {
     setQ("");
@@ -47,20 +65,58 @@ export function useGlobalListings({ walletProvider, showError, showInfo }) {
   const clearListings = useCallback(() => setAllListings([]), []);
 
   const mergeBatchIntoState = useCallback(
-    (batch) => {
+    (batch, { reset = false } = {}) => {
       if (!batch?.length) return;
-      setAllListings((prev) => mergeListingsBatch(prev, batch));
+      const normalized = batch.map(normalizeListing);
+      setAllListings((prev) => {
+        const base = reset ? [] : prev;
+        return mergeListingsBatch(base, normalized);
+      });
     },
     [setAllListings]
+  );
+
+  const loadFromBackend = useCallback(
+    async ({ reset, target }) => {
+      try {
+        const nextTo = reset ? undefined : globalCursor?.nextTo;
+        const res = await fetchGlobalListings({
+          target,
+          cursor:
+            typeof nextTo === "number" && Number.isFinite(nextTo) ? nextTo : undefined,
+          scan: reset,
+        });
+
+        if (Array.isArray(res?.listings)) {
+          mergeBatchIntoState(res.listings, { reset });
+        }
+
+        if (res?.cursor) {
+          setGlobalCursor({
+            nextTo: Number(res.cursor.nextTo ?? 0),
+            done: Boolean(res.cursor.done),
+          });
+        }
+      } catch (err) {
+        showError?.(err, "No se pudo cargar el Marketplace Global");
+        throw err;
+      }
+    },
+    [globalCursor, mergeBatchIntoState, setGlobalCursor, showError]
   );
 
   const loadAllListings = useCallback(
     async (reset = true, target = GLOBAL_BATCH_TARGET) => {
       if (loadingGlobal) return;
-      if (!READ_RPC && !walletProvider) return;
+      const useBackend = preferBackend || (!READ_RPC && !walletProvider);
 
       try {
         setLoadingGlobal(true);
+
+        if (useBackend) {
+          await loadFromBackend({ reset, target });
+          return;
+        }
 
         const provider = await getReadProvider(walletProvider);
         const market = new Contract(MARKET_ADDRESS, MARKET_IFACE, provider);
@@ -185,14 +241,18 @@ export function useGlobalListings({ walletProvider, showError, showInfo }) {
         showError?.(err, "Error cargando el Marketplace Global");
       } finally {
         setLoadingGlobal(false);
-        await sleep(PAGE_DELAY_MS);
+        if (!useBackend) {
+          await sleep(PAGE_DELAY_MS);
+        }
       }
     },
     [
       allListings,
       globalCursor,
+      loadFromBackend,
       loadingGlobal,
       mergeBatchIntoState,
+      preferBackend,
       showError,
       showInfo,
       walletProvider,

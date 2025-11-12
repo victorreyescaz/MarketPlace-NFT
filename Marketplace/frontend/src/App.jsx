@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect } from "react";
-import { VStack } from "@chakra-ui/react";
+import { useEffect, useMemo } from "react";
+import { Box, VStack } from "@chakra-ui/react";
 import { useAppKitProvider, useAppKitAccount, useAppKit } from "@reown/appkit/react";
 /* 
 useAppKitProvider: te da el provider conectado (RPC + firmante según contexto).
@@ -21,14 +21,27 @@ import { useWalletEvents } from "./hooks/useWalletEvents";
 import { GlobalMarketplaceSection } from "./components/ui/marketplace/GlobalMarketplaceSection";
 import { HeaderSection } from "./components/ui/header/HeaderSection";
 import { useMarketplaceAutoload } from "./hooks/useMarketplaceAutoload";
+import { ethers } from "ethers";
 
 
 
 function App() {
 
   const { walletProvider } = useAppKitProvider("eip155");
-  const { address, isConnected } = useAppKitAccount({ namespace: "eip155" });
+  const { address, isConnected, chainId } = useAppKitAccount({ namespace: "eip155" });
   const { open } = useAppKit();
+
+  const SUPPORTED_CHAINS_IDS = new Set([11155111]);
+  const wrongNetwork = isConnected && chainId && !SUPPORTED_CHAINS_IDS.has(Number(chainId));
+
+// Provider publico que usaremos para mostrar el Marketplace Global cuando no haya una wallet conectada
+const READ_RPC = import.meta.env.READ_RPC;
+
+const publicProvider = useMemo(() => 
+  READ_RPC ? new ethers.JsonRpcProvider(READ_RPC):null, [READ_RPC]);
+
+const readProvider = walletProvider ?? publicProvider;
+const preferBackend = !walletProvider && !READ_RPC;
 
   const {showError, showInfo} = useStatusBanner(); 
 
@@ -38,7 +51,7 @@ function App() {
     loadingNFTs,
     proceedsEth,
     setProceedsEth,
-    loadMyNFTs: loadMyNFTsCore,
+    loadMyNFTs,
   } = useMyNFTs({
     address,
     walletProvider,
@@ -51,8 +64,7 @@ function App() {
     filteredGlobal,
     loadingGlobal,
     globalCursor,
-    loadAllListings: loadAllListingsCore,
-    clearListings,
+    loadAllListings,
     q,
     minP,
     maxP,
@@ -62,7 +74,7 @@ function App() {
     setMaxP,
     setSort,
     resetFilters,
-  } = useGlobalListings({ walletProvider, showError, showInfo });
+  } = useGlobalListings({ walletProvider: readProvider, preferBackend, showError, showInfo });
 
   const marketplaceFilters = {
     q,
@@ -74,19 +86,6 @@ function App() {
     onMaxChange: setMaxP,
     onSortChange: setSort,
   };
-
-  const loadMyNFTs = useCallback(async () => {
-    clearListings();
-    await loadMyNFTsCore();
-  }, [clearListings, loadMyNFTsCore]);
-
-  const loadAllListings = useCallback(
-    async (...args) => {
-      setMyNFTs([]);
-      await loadAllListingsCore(...args);
-    },
-    [loadAllListingsCore, setMyNFTs]
-  );
 
   const txLock = useTxLocks();
   const { txLoading, kBuy, kCancel, kList, kUpdate, isTokenBusy, runWithLock, setLoading } = txLock;
@@ -132,6 +131,7 @@ function App() {
     loadAllListings,
     loadingGlobal,
     globalCursor,
+    showInfo,
     setQ,
     setMinP,
     setMaxP,
@@ -153,9 +153,10 @@ function App() {
   });
 
     useMarketplaceAutoload({
-    walletProvider,
+    walletProvider: readProvider,
     resetFilters,
     loadAllListings,
+    allowBackend: preferBackend,
   });
 
     useWalletEvents({
@@ -181,13 +182,20 @@ function App() {
       refreshProceeds();
     }, [address, walletProvider, isConnected, loadMyNFTs, refreshProceeds]);
 
+    useEffect(() => {
+      if (wrongNetwork){
+        showError("Cambia a la red de Sepolia para operar en el marketplace");
+      }
+    },[wrongNetwork, showError]);
 
-
-  /* ===================================================== Render ======================================================================  */ 
+  /* ==========================Render=================================*/ 
 
 return (
   <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
+
+    <Box position="sticky" top={0} zIndex={10} bg="gray.900" p={3}>
     <HeaderSection walletProps={walletProps} />
+    </Box>
 
     {/* Formulario de minteo*/}
     
@@ -197,28 +205,32 @@ return (
       open={open}
       showError={showError}
       showInfo={showInfo}
+      wrongNetwork={wrongNetwork}
     />
 
     {/* Carga galería (Mis NFTs)*/}
 
-      <MyNFTSection
-      loadingNFTs={loadingNFTs}
-      myNFTs={myNFTs}
-      address={address}
-      kCancel={kCancel}
-      txLoading={txLoading}
-      isTokenBusy={isTokenBusy}
-      runWithLock={runWithLock}
-      cancelListing={cancelListing}
-      openUpdateModal={openUpdateModal}
-      openListModal={openListModal}
-      isConnected={isConnected}
+    <MyNFTSection
+    loadingNFTs={loadingNFTs}
+    myNFTs={myNFTs}
+    address={address}
+    kCancel={kCancel}
+    kList={kList}
+    txLoading={txLoading}
+    isTokenBusy={isTokenBusy}
+    runWithLock={runWithLock}
+    cancelListing={cancelListing}
+    openUpdateModal={openUpdateModal}
+    openListModal={openListModal}
+    isConnected={isConnected}
+    wrongNetwork={wrongNetwork}
     />
 
     <GlobalMarketplaceSection
       filters={marketplaceFilters}
       listings={marketplaceListings}
       actions={marketplaceActions}
+      wrongNetwork={wrongNetwork}
     />
 
 {/* === Modal de precio inline para listar o actualizar precio NFT  === */}

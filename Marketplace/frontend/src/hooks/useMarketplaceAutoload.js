@@ -8,16 +8,17 @@ export function useMarketplaceAutoload({
   walletProvider,
   resetFilters,
   loadAllListings,
+  allowBackend = false,
 }) {
   const autoLoadRef = useRef(false);
 
   useEffect(() => {
     if (!AUTOLOAD_ENABLED) return;
     if (autoLoadRef.current) return;
-    if (!READ_RPC && !walletProvider) return;
+    if (!allowBackend && !READ_RPC && !walletProvider) return;
 
     autoLoadRef.current = true;
     resetFilters?.();
     loadAllListings?.(true);
-  }, [walletProvider, resetFilters, loadAllListings]);
+  }, [walletProvider, allowBackend, resetFilters, loadAllListings]);
 }

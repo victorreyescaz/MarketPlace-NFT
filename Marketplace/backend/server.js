@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import multer from "multer";
 import fetch from "node-fetch";
+import marketplaceRouter from "./routes/marketplace.js";
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -22,6 +23,8 @@ app.use(
 );
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
+
+app.use("/api/marketplace", marketplaceRouter);
 
 // Sube archivo a Pinata
 app.post("/api/pin/file", upload.single("file"), async (req, res) => {
