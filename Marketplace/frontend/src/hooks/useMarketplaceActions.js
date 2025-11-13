@@ -7,6 +7,7 @@ import {
   MARKET_ADDRESS,
   MARKET_IFACE,
 } from "../utils/contract";
+import { ensureSupportedChain } from "./useRequiredChanges";
 
 export function useMarketplaceActions({
   walletProvider,
@@ -18,6 +19,7 @@ export function useMarketplaceActions({
 }) {
   const getSigner = useCallback(async () => {
     if (!walletProvider) {
+      await ensureSupportedChain(walletProvider);
       throw new Error("No hay wallet provider");
     }
     return (await new BrowserProvider(walletProvider)).getSigner();

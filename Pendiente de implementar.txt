@@ -1,35 +1,29 @@
-___________________________________________________________________________________________________________________________________________
+_______________________________________________________________
+TENER TODO ESTO IMPLEMENTADO ANTES DE EMPEZAR CON LA PERSONALIZACION DEL FRONTEND
+_______________________________________________________________
 
---- Controlar si cambiamos de red en la wallet, ahora al hacerlo si quieres mintear un nft no te deja porque no tienes para pagar el gas. 
-Recuerdo: Redes que se pueden utilizar en el marketplace, Arbitrum y Sepolia.
+--- Al solo listar aparece un error.
+Cuando minteamos (sin listar o listando) borrar tambien el Seleccionar Archivo
 
---- Al mintear, ponerle el precio directamente, no tener que listar el NFT despues de mintearlo. No se si es posible hacerlo.
+-- Auto-refresh del Marketplace Global tras listar/comprar/cancelar/actualizar precio. Añadir ShowInfos como hacemos cuando compramos, iniciando peticion... iniciando transaccion... NFT comprado
+Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para un marketplace.
 
--- Añadir pequeño footer con informacion del creador o lo que se me ocurra
+-- Al hacer hover en el precio del NFT, sea en Mis Nfts o en el marketplace mostrar precio en $, conectarlo con coinmarketcap o coingecko
 
--- A la hora de listar, cambiar precio o comprar un nft, mostrar un pequeño aviso con el valor equivalente en USD(con fetch a CoinGecko o coinmarketcap)
-
--- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
+--  Revisar variables de entorno del frontend, mover las que sean criticas al backend e utilizar el marketplaceApi para poder acceder a ellas desde el frontend
 
 -- Introducir spinners en momentos de carga que vea necesario
 
 -- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton. Poner un aviso si clicamos para retirar teniendo 0.0ETH
 
--- Cambiar todos los alert por showInfo, queda mas bonito
-
 --- Poder mintear mas de un NFT a la vez, una coleccion
-
+______________________________________________________________________________________________________________________________
 -- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
 Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.Implementarla en el frontend para poder quemar tokens
 
 -- Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
 
---  Revisar variables de entorno del frontend, mover las que sean criticas al backend e utilizar el marketplaceApi para poder acceder a ellas desde el frontend
-
-___________________________________________________________________________________________________________________________________________
-
--- Auto-refresh del Marketplace Global tras listar/comprar/cancelar/actualizar precio. Añadir ShowInfos como hacemos cuando compramos, iniciando peticion... iniciando transaccion... NFT comprado
-Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para un marketplace.
+-- Implementar funcion approve de contrato solidity para dar permisos a un tercero para gestionar los NFTs
 
 -- Badges de estado en las cards
 “Listado”, “No listado”, “Tuyo” (ya muestras “Tu NFT”, pero puedes añadir un Badge en la card).
@@ -45,3 +39,9 @@ Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para
 -- UX: “Volver / Cambiar vista”
 
 -- Toggle entre “Mis NFTs” y “Marketplace Global” (estado view), ocultando la otra sección.
+
+-- Añadir pequeño footer con informacion del creador o lo que se me ocurra
+
+-- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
+
+-- Cambiar todos los alert por showInfo, queda mas bonito

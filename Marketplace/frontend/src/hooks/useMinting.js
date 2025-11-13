@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { BrowserProvider, Contract } from "ethers";
 import { uploadFileToPinata, uploadJSONToPinata } from "../services/pinata";
 import { NFT_ADDRESS, NFT_IFACE } from "../utils/contract";
+import { ensureSupportedChain } from "./useRequiredChanges";
 
 export function useMinting({
   walletProvider,
@@ -12,17 +13,33 @@ export function useMinting({
   file,
   name,
   desc,
+  autoList,
+  priceEth,
+  listToken,
   setName,
   setDesc,
   setFile,
   setBusy,
+  setPriceEth,
 }) {
   const handleMint = useCallback(async () => {
     if (!isConnected) {
       return open({ view: "Connect", namespace: "eip155" });
     }
+
+    if (!(await ensureSupportedChain(walletProvider))) {
+      return showError?.("Cambia a Sepolia para mintear en NFT");
+    }
+
     if (!walletProvider) return showError?.("No hay wallet provider");
+
     if (!file || !name) return showError?.("Falta imagen y/o nombre");
+
+    if (autoList && (!priceEth || Number(priceEth) <= 0)) {
+      return showError?.("Necesitas un precio para listar automáticamente");
+    }
+
+    let autoListFailed = false;
 
     try {
       setBusy(true);
@@ -44,12 +61,36 @@ export function useMinting({
       const tx = await contract.mint(tokenURI);
       await tx.wait();
 
-      showInfo?.("✅ NFT minteado con éxito");
+      const receipt = await tx.wait();
+      const transferEvent = receipt.logs
+        .map((log) => contract.interface.parseLog(log))
+        .find((parsed) => parsed?.name === "Transfer");
+      const tokenId = transferEvent?.args?.tokenId?.toString();
+
+      if (autoList) {
+        try {
+          showInfo?.("Preparando listado...");
+          await listToken(tokenId, priceEth);
+          showInfo?.("✅ NFT minteado y listado con éxito");
+        } catch (err) {
+          autoListFailed = true;
+          throw err;
+        }
+      }
+
       setName("");
       setDesc("");
+      setPriceEth("");
       setFile(null);
-    } catch (e) {
-      showError?.(e, "No se pudo mintear el NFT");
+    } catch (err) {
+      if (autoListFailed) {
+        showError?.(
+          err,
+          "El NFT se minteó pero el listado falló, puedes intentarlo desde Mis NFTs"
+        );
+      } else {
+        showError?.("No se pudo mintear el NFT");
+      }
     } finally {
       setBusy(false);
     }
@@ -66,6 +107,10 @@ export function useMinting({
     showError,
     showInfo,
     walletProvider,
+    autoList,
+    listToken,
+    priceEth,
+    setPriceEth,
   ]);
 
   return { handleMint };

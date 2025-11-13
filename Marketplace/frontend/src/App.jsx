@@ -206,6 +206,7 @@ return (
       showError={showError}
       showInfo={showInfo}
       wrongNetwork={wrongNetwork}
+      listToken={listToken}
     />
 
     {/* Carga galería (Mis NFTs)*/}

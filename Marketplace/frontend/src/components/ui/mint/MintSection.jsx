@@ -8,11 +8,16 @@ export function MintSection({
   open,
   showError,
   showInfo,
+  listToken,
+
 }) {
+
   const [name, setName] = React.useState("");
   const [desc, setDesc] = React.useState("");
   const [file, setFile] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
+  const [autoList, setAutoList] = React.useState(false);
+  const [priceEth, setPriceEth] = React.useState("");
 
   const onPickFile = (selectedFile) => setFile(selectedFile || null);
 
@@ -25,10 +30,15 @@ export function MintSection({
     file,
     name,
     desc,
+    autoList,
+    priceEth,
+    listToken,
     setName,
     setDesc,
     setFile,
     setBusy,
+    setAutoList,
+    setPriceEth,
   });
 
   return (
@@ -42,6 +52,10 @@ export function MintSection({
       busy={busy}
       isConnected={isConnected}
       file={file}
+      autoList={autoList}
+      onToggleList={setAutoList}
+      priceEth={priceEth}
+      onPriceChange={setPriceEth}
     />
   );
 }
