@@ -38,7 +38,11 @@ const WalletControls = ({
           <HStack justify="space-between" flexWrap="wrap" spacing={3}>
             <AppKitAccountButton namespace="eip155" balance="show" />
  
-            <Button onClick={loadMyNFTs} isLoading={loadingNFTs} colorScheme="purple">
+            <Button
+              onClick={() => loadMyNFTs?.()}
+              isLoading={loadingNFTs}
+              colorScheme="purple"
+            >
               Mis NFTs
             </Button>
 

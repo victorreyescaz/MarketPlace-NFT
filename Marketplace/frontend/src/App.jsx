@@ -207,6 +207,7 @@ return (
       showInfo={showInfo}
       wrongNetwork={wrongNetwork}
       listToken={listToken}
+      loadMyNFTs={loadMyNFTs}
     />
 
     {/* Carga galería (Mis NFTs)*/}

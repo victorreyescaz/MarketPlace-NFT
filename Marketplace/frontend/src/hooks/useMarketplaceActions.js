@@ -80,10 +80,10 @@ export function useMarketplaceActions({
       });
 
       await tx.wait();
-      alert("✅ Listado creado");
+      showInfo?.("✅ Listado creado");
       await loadMyNFTs?.();
     },
-    [ensureApprovalAll, getSigner, loadMyNFTs]
+    [ensureApprovalAll, getSigner, loadMyNFTs, showInfo]
   );
 
   const updateListing = useCallback(
@@ -103,10 +103,10 @@ export function useMarketplaceActions({
         gasLimit: (gas * 120n) / 100n,
       });
       await tx.wait();
-      alert("✅ Precio actualizado");
+      showInfo?.("✅ Precio actualizado");
       await loadMyNFTs?.();
     },
-    [getSigner, loadMyNFTs]
+    [getSigner, loadMyNFTs, showInfo]
   );
 
   const cancelListing = useCallback(
@@ -120,10 +120,10 @@ export function useMarketplaceActions({
         gasLimit: (gas * 120n) / 100n,
       });
       await tx.wait();
-      alert("✅ Listado cancelado");
+      showInfo?.("✅ Listado cancelado");
       await loadMyNFTs?.();
     },
-    [getSigner, loadMyNFTs]
+    [getSigner, loadMyNFTs, showInfo]
   );
 
   const refreshProceeds = useCallback(async () => {
@@ -148,9 +148,9 @@ export function useMarketplaceActions({
       gasLimit: (gas * 120n) / 100n,
     });
     await tx.wait();
-    alert("✅ Fondos retirados");
+    showInfo?.("✅ Fondos retirados");
     await refreshProceeds();
-  }, [getSigner, refreshProceeds]);
+  }, [getSigner, refreshProceeds, showInfo]);
 
   const buyToken = useCallback(
     async (tokenId, priceEth, sellerFromCard) => {

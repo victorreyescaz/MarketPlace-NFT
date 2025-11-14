@@ -9,6 +9,7 @@ export function MintSection({
   showError,
   showInfo,
   listToken,
+  loadMyNFTs,
 
 }) {
 
@@ -33,6 +34,7 @@ export function MintSection({
     autoList,
     priceEth,
     listToken,
+    loadMyNFTs,
     setName,
     setDesc,
     setFile,

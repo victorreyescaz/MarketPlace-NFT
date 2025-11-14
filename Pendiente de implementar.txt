@@ -2,9 +2,6 @@ _______________________________________________________________
 TENER TODO ESTO IMPLEMENTADO ANTES DE EMPEZAR CON LA PERSONALIZACION DEL FRONTEND
 _______________________________________________________________
 
---- Al solo listar aparece un error.
-Cuando minteamos (sin listar o listando) borrar tambien el Seleccionar Archivo
-
 -- Auto-refresh del Marketplace Global tras listar/comprar/cancelar/actualizar precio. Añadir ShowInfos como hacemos cuando compramos, iniciando peticion... iniciando transaccion... NFT comprado
 Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para un marketplace.
 
@@ -18,6 +15,8 @@ Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para
 
 --- Poder mintear mas de un NFT a la vez, una coleccion
 ______________________________________________________________________________________________________________________________
+______________________________________________________________________________________________________________________________
+
 -- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
 Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.Implementarla en el frontend para poder quemar tokens
 

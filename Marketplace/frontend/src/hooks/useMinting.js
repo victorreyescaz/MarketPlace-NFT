@@ -16,6 +16,7 @@ export function useMinting({
   autoList,
   priceEth,
   listToken,
+  loadMyNFTs,
   setName,
   setDesc,
   setFile,
@@ -59,8 +60,6 @@ export function useMinting({
       const contract = new Contract(NFT_ADDRESS, NFT_IFACE, signer);
 
       const tx = await contract.mint(tokenURI);
-      await tx.wait();
-
       const receipt = await tx.wait();
       const transferEvent = receipt.logs
         .map((log) => contract.interface.parseLog(log))
@@ -76,6 +75,10 @@ export function useMinting({
           autoListFailed = true;
           throw err;
         }
+      }
+      if (!autoList) {
+        showInfo?.("✅ NFT minteado con éxito");
+        await loadMyNFTs?.();
       }
 
       setName("");
@@ -103,6 +106,7 @@ export function useMinting({
     setBusy,
     setDesc,
     setFile,
+    loadMyNFTs,
     setName,
     showError,
     showInfo,
