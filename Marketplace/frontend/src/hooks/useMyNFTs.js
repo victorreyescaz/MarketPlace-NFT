@@ -1,3 +1,9 @@
+/**
+Hook que carga los NFTs del usuario desde el contrato y expone estado de lista, proceeds y loading.
+
+El hook devuelve todo lo necesario (myNFTs, setMyNFTs, loadingNFTs, proceedsEth, setProceedsEth, loadMyNFTs) para que componentes como MintSection, MyNFTSection y WalletControls consuman estos datos.
+*/
+
 import { useCallback, useState } from "react";
 import { Contract, formatEther } from "ethers";
 import { getReadProvider, withRetry } from "../services/rpcs";

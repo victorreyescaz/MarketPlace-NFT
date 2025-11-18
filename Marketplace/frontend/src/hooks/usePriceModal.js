@@ -1,3 +1,9 @@
+/**
+Administra el estado del modal de precio para listar/actualizar y expone handlers para abrirlo, cerrarlo y confirmar la acción.
+
+Se usa en App.jsx para enlazarlo con PriceModal y con las acciones de MyNFTSection. De este modo, toda la lógica del modal queda centralizada en el hook.
+ */
+
 import { useCallback, useState } from "react";
 
 const INITIAL_STATE = {

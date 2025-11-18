@@ -1,3 +1,7 @@
+/**
+`ensureSupportedChain` – comprueba si la wallet está en la red soportada (Sepolia por defecto) y, si no, intenta cambiarla o agregarla con `wallet_addEthereumChain`.
+ */
+
 const CHAIN_PARAMS = {
   11155111: {
     chainId: "0xaa36a7",

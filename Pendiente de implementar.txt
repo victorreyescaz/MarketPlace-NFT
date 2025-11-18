@@ -14,6 +14,8 @@ Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para
 -- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton. Poner un aviso si clicamos para retirar teniendo 0.0ETH
 
 --- Poder mintear mas de un NFT a la vez, una coleccion
+
+--- Como pondriamos la aplicacion en produccion??
 ______________________________________________________________________________________________________________________________
 ______________________________________________________________________________________________________________________________
 

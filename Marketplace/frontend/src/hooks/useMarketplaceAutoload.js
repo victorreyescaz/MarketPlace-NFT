@@ -1,3 +1,9 @@
+/*
+Hook que dispara automáticamente `loadAllListings` una sola vez cuando hay condiciones para leer el marketplace global.
+
+Se utiliza para que cargue el marketplace global sin la necesidad de que una wallet esté conectada
+ */
+
 import { useEffect, useRef } from "react";
 
 const AUTOLOAD_ENABLED =

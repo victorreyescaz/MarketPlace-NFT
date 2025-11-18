@@ -1,6 +1,6 @@
-/*
-Helpers RPC + reintentos
-*/
+/**
+Utilidades para trabajar con RPCs: reintentos, provider de lectura cacheado y consulta de eventos paginada con manejo de rate limits.
+ */
 
 import { BrowserProvider, JsonRpcProvider } from "ethers";
 

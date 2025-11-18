@@ -1,5 +1,5 @@
 /* 
-Helpers Pinata
+Helpers de subida a Pinata via backend y un escaneo on-chain para caprutar NFTs listados
 */
 
 import { formatEther } from "ethers";
@@ -67,7 +67,7 @@ export async function scanCollectionListings(nft, market, maxScan = 200) {
     - Consulta el marketplace para ver si el token esta listado
     - Si el NFT esta listado recupera el URI, si apunta a IPFS lo convierte a una URL HTTP usando gateway de Pinata
     - Descarga los metadatos desde el URI
-    - Obtiene la imagen de la metadata, si tambien esta en IPFS la convierte a URL HTTP con gatewat Pinata
+    - Obtiene la imagen de la metadata, si tambien esta en IPFS la convierte a URL HTTP con gateway Pinata
     - Contruimos en objeto con toda la info para la UI y lo pusheamos al array
     - Manejo de errores dentro del bucle, si falla un token no rompe todo el escaneo, solo avisa por consola
     - Manejo de errores externos, si el contrato no soporta totalSupply/tokenByIndex(no implementa ERC-721Enumerable) lo capturamos

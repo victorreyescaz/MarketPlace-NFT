@@ -1,3 +1,9 @@
+/*
+Agrupa las acciones que interactúan con el contrato Marketplace: listar, actualizar precio, cancelar, comprar y manejar proceeds.
+
+Todos están envueltos en useCallback para evitar referencias nuevas en cada render y aprovechar showInfo, showError, loadMyNFTs, etc. Se retornan las funciones para que componentes como MarketplaceControls, MyNFTSection o PriceModal las usen.
+ */
+
 import { useCallback } from "react";
 import { BrowserProvider, Contract, parseEther, formatEther } from "ethers";
 import { getReadProvider, withRetry } from "../services/rpcs";

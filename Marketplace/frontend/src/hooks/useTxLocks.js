@@ -1,3 +1,15 @@
+/**
+Gestiona flags de carga y locks por token/acción para evitar transacciones simultáneas duplicadas y mostrar banners coherentes.
+
+runWithLock(key, event, fn): envuelve cualquier handler asíncrono:
+Evita doble ejecución si el lock ya estaba activo.
+Deshabilita el botón asociado, marca loading y ejecuta la función.
+En caso de error, detecta si el usuario rechazó la transacción (code === 4001) para mostrar un mensaje informativo; para otros errores, usa showError.
+Libera el lock en el finally.
+
+Se usa en App.jsx para pasar runWithLock y isTokenBusy a componentes como MyNFTSection y GlobalListings, de modo que cada botón “Comprar/Listar/Cancelar” esté protegido contra clics repetidos.
+ */
+
 import { useCallback, useRef, useState } from "react";
 import { useStatusBanner } from "./useStatusBanner";
 

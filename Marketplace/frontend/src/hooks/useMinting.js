@@ -1,3 +1,9 @@
+/**
+Encapsula la lógica de mintear NFTs: valida inputs, sube archivos/metadatos a IPFS, llama al contrato y opcionalmente lista el NFT.
+
+El hook retorna { handleMint } para que MintSection lo use al hacer clic en “Mint NFT”. De esta forma, toda la lógica de minting/listing queda fuera del componente de UI
+ */
+
 import { useCallback } from "react";
 import { BrowserProvider, Contract } from "ethers";
 import { uploadFileToPinata, uploadJSONToPinata } from "../services/pinata";

@@ -1,3 +1,9 @@
+/**
+Suscribe callbacks a los eventos `accountsChanged` y `chainChanged` de la wallet/Ethereum provider, actualizándolos de forma segura.
+
+Lo utilizamos en App.jsx para controlar cuando se cambia de wallet o de chain
+ */
+
 import { useEffect, useRef } from "react";
 
 export function useWalletEvents({
