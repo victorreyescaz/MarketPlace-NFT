@@ -54,6 +54,7 @@ export function MyNFTSection({
   openListModal,
   isConnected,
   onClose,
+  ethPrice,
 
 }) {
   
@@ -85,6 +86,7 @@ export function MyNFTSection({
             <OwnerNFTCard
               key={`${nft.tokenId}-${ownerLower}`}
               nft={nft}
+              ethPrice={ethPrice}
               isOwner={ownerLower === me}
               isBusy={isTokenBusy(nft.tokenId)}
               listLoading={!!txLoading[listKey]}

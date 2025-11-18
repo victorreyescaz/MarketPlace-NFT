@@ -12,6 +12,7 @@ import {
   SkeletonText,
   Text,
 } from "@chakra-ui/react";
+
 import { MarketplaceNFTCard } from "../nft/NFTCard";
 
 const DEFAULT_SKELETONS = 6;
@@ -43,6 +44,7 @@ export function GlobalListings({
   buyToken,
   loadAllListings,
   skeletonCount = DEFAULT_SKELETONS,
+  ethPrice,
 
 }) {
   
@@ -77,6 +79,7 @@ export function GlobalListings({
             <MarketplaceNFTCard
               key={`${nft.tokenId}-${nft.seller}`}
               nft={nft}
+              ethPrice={ethPrice}
               cantBuy={cantBuy}
               isBusy={isTokenBusy(nft.tokenId)}
               buyLoading={!!txLoading[buyKey]}

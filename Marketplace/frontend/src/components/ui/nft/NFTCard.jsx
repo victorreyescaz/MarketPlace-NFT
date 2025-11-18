@@ -7,6 +7,16 @@
  */
 
 import { Box, Button, Heading, HStack, Image, Stack, Text } from "@chakra-ui/react";
+import { Tooltip } from "../tooltip";
+
+const formatUsd = (eth, usd) => {
+  if (!usd || !eth) return null;
+  const total = Number(eth) * usd;
+  return `≈ $${total.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD`;
+};
 
 export function OwnerNFTCard({
     nft,
@@ -17,9 +27,16 @@ export function OwnerNFTCard({
     onCancel,
     onUpdatePrice,
     onList,
-
+    ethPrice,
 }) {
     if (!nft) return null;
+
+    const priceData = ethPrice ?? {};
+    const usdLabel = priceData.loading
+      ? "Actualizando precio USD…"
+      : priceData.error
+        ? "No se pudo obtener el precio en USD"
+        : formatUsd(nft.priceEth, priceData.priceUsd);
 
     return(
         <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
@@ -31,7 +48,9 @@ export function OwnerNFTCard({
             <Stack mt="3" spacing={2}>
               {nft.listed ? (
             <>
-                <Text>💰 {nft.priceEth} ETH</Text>
+                <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
+                  <Text mt="1">💰 {nft.priceEth} ETH</Text>
+                </Tooltip>
                 {isOwner && (
                     <HStack>
                         <Button
@@ -74,8 +93,16 @@ export function MarketplaceNFTCard({
   isBusy,
   buyLoading,
   onBuy,
+  ethPrice,
 }) {
   if (!nft) return null;
+
+  const priceData = ethPrice ?? {};
+  const usdLabel = priceData.loading
+  ? "Actualizando precio USD…"
+  : priceData.error
+    ? "No se pudo obtener el precio en USD"
+    : formatUsd(nft.priceEth, priceData.priceUsd);
 
   const sellerShort = nft.seller
     ? `${nft.seller.slice(0, 6)}...${nft.seller.slice(-4)}`
@@ -95,7 +122,9 @@ export function MarketplaceNFTCard({
       <Text>
         Vendedor: {sellerShort}
       </Text>
-      <Text mt="1">💰 {nft.priceEth} ETH</Text>
+      <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
+        <Text mt="1">💰 {nft.priceEth} ETH</Text>
+      </Tooltip>
 
       <Button
         size="sm"

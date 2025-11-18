@@ -22,6 +22,7 @@ import { GlobalMarketplaceSection } from "./components/ui/marketplace/GlobalMark
 import { HeaderSection } from "./components/ui/header/HeaderSection";
 import { useMarketplaceAutoload } from "./hooks/useMarketplaceAutoload";
 import { ethers } from "ethers";
+import { useEthPrice } from "./hooks/useEthPrice";
 
 
 
@@ -46,6 +47,8 @@ function App() {
   const [showMyNFTs, setShowMyNFTs] = useState(false);
 
   const {showError, showInfo} = useStatusBanner(); 
+
+   const ethPrice = useEthPrice();
 
   const {
     myNFTs,
@@ -175,6 +178,8 @@ function App() {
     kUpdate,
   });
 
+ 
+
     useMarketplaceAutoload({
     walletProvider: readProvider,
     resetFilters,
@@ -251,6 +256,7 @@ return (
       isConnected={isConnected}
       wrongNetwork={wrongNetwork}
       onClose={handleHideMyNFTs}
+      ethPrice={ethPrice}
       />
     )}
 
@@ -259,6 +265,8 @@ return (
       listings={marketplaceListings}
       actions={marketplaceActions}
       wrongNetwork={wrongNetwork}
+      ethPrice={ethPrice}
+
     />
 
 {/* === Modal de precio inline para listar o actualizar precio NFT  === */}

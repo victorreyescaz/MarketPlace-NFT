@@ -9,11 +9,17 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const PORT = process.env.PORT || 4000;
+const ETH_PRICE_CACHE_MS = Number(process.env.ETH_PRICE_CACHE_MS || 60000);
 const PINATA_JWT = process.env.PINATA_JWT?.trim();
 if (!PINATA_JWT) {
   console.error("[ERR] Falta PINATA_JWT en .env");
   process.exit(1);
 }
+
+const COINGECKO_ETH_PRICE =
+  "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd";
+let cachedEthPrice = null;
+let cachedEthPriceAt = 0;
 
 // CORS: permite Vite dev server
 app.use(
@@ -25,6 +31,53 @@ app.use(
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.use("/api/marketplace", marketplaceRouter);
+
+// Proxy simple para precio ETH USD
+app.get("/api/prices/eth", async (_req, res) => {
+  try {
+    const now = Date.now();
+    if (
+      cachedEthPrice &&
+      cachedEthPriceAt &&
+      now - cachedEthPriceAt < ETH_PRICE_CACHE_MS
+    ) {
+      return res.json(cachedEthPrice);
+    }
+
+    const cgRes = await fetch(COINGECKO_ETH_PRICE);
+    if (!cgRes.ok) {
+      const text = await cgRes.text().catch(() => "");
+      return res.status(cgRes.status).json({
+        error: "No se pudo obtener el precio del ETH",
+        details: text || undefined,
+      });
+    }
+
+    const payload = await cgRes.json();
+    const usd = Number(payload?.ethereum?.usd);
+    if (!Number.isFinite(usd)) {
+      return res
+        .status(502)
+        .json({ error: "Respuesta inválida del proveedor de precios" });
+    }
+
+    const response = {
+      usd,
+      source: "coingecko",
+      updatedAt: new Date().toISOString(),
+    };
+
+    cachedEthPrice = response;
+    cachedEthPriceAt = now;
+
+    return res.json(response);
+  } catch (err) {
+    console.error("[eth-price]", err);
+    return res
+      .status(500)
+      .json({ error: err?.message || "Fallo al obtener precio del ETH" });
+  }
+});
 
 // Sube archivo a Pinata
 app.post("/api/pin/file", upload.single("file"), async (req, res) => {

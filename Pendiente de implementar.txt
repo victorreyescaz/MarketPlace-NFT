@@ -2,8 +2,6 @@ _______________________________________________________________
 TENER TODO ESTO IMPLEMENTADO ANTES DE EMPEZAR CON LA PERSONALIZACION DEL FRONTEND
 _______________________________________________________________
 
--- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton. Poner un aviso si clicamos para retirar teniendo 0.0ETH
-
 -- Al hacer hover en el precio del NFT, sea en Mis Nfts o en el marketplace mostrar precio en $, conectarlo con coinmarketcap o coingecko
 
 --  Revisar variables de entorno del frontend, mover las que sean criticas al backend e utilizar el marketplaceApi para poder acceder a ellas desde el frontend
@@ -13,6 +11,8 @@ _______________________________________________________________
 -- Introducir spinners en momentos de carga que vea necesario
 
 --- Como pondriamos la aplicacion en produccion??
+
+--- Es correcto tener backend y frontend en el mismo proyecto?
 ______________________________________________________________________________________________________________________________
 ______________________________________________________________________________________________________________________________
 

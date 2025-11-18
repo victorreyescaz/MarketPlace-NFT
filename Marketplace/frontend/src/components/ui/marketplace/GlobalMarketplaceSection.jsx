@@ -14,6 +14,7 @@ export function GlobalMarketplaceSection({
   listings,
   actions,
   title = "Marketplace Global",
+  ethPrice,
 
 }) {
   
@@ -74,6 +75,7 @@ export function GlobalMarketplaceSection({
         runWithLock={runWithLock}
         buyToken={buyToken}
         loadAllListings={loadAllListings}
+        ethPrice={ethPrice}
       />
     </VStack>
   );
