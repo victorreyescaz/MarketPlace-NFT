@@ -1,3 +1,18 @@
+/*
+Hook que sincroniza el marketplace global: 
+  -- Carga listados desde backend o blockchain
+  -- Maneja filtro/orden y expone `filteredGlobal`, `loadAllListings`, `globalCursor` y setters de búsqueda.
+
+
+-- Mantiene en estado todos los listados (allListings), el cursor de paginación (globalCursor), flags de carga y los filtros (q, minP, maxP, sort).
+
+-- Ofrece loadAllListings que decide si consultar al backend (fetchGlobalListings) o leer directamente de contratos (getReadProvider, fetchListedRange, market.getListing, etc.), normaliza cada NFT y actualiza globalCursor.
+
+-- Usa useMemo para derivar filteredGlobal aplicando búsqueda textual, rango de precios y orden (reciente o por precio).
+
+-- Expone helpers (resetFilters, clearListings, setters individuales) para que la UI controle formularios y botones (MarketplaceControls, GlobalListings).
+ */
+
 import { useCallback, useMemo, useState } from "react";
 import { Contract, formatEther } from "ethers";
 import { getReadProvider, fetchListedRange, withRetry } from "../services/rpcs";
@@ -53,6 +68,10 @@ export function useGlobalListings({
   const [maxP, setMaxP] = useState("");
   const [sort, setSort] = useState("recent");
 
+  /*
+  Si el hook recibe preferBackend via props(preferedBackendProps) usa ese valor para sacar datos on-chain
+  Si no lo recibe, evalua, si no hay wallet conectada ni rpc publico, preferira consultar al backend
+  */
   const preferBackend = preferBackendProp ?? (!walletProvider && !READ_RPC);
 
   const resetFilters = useCallback(() => {
@@ -83,7 +102,9 @@ export function useGlobalListings({
         const res = await fetchGlobalListings({
           target,
           cursor:
-            typeof nextTo === "number" && Number.isFinite(nextTo) ? nextTo : undefined,
+            typeof nextTo === "number" && Number.isFinite(nextTo)
+              ? nextTo
+              : undefined,
           scan: reset,
         });
 

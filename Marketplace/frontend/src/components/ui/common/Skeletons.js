@@ -8,7 +8,7 @@ const GLOBAL_SKELETON_COUNT = 6; // nº de tarjetas skeleton en la primera carga
 function NFTCardSkeleton() {
   return (
     <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
-      <Skeleton height="220px" /> {/* Tamaño del skeleton */}
+      <Skeleton height="220px" />
       <Box mt="3">
         <Skeleton height="20px" width="70%" /> {/* Simula el nombre del NFT */}
         <SkeletonText mt="2" noOfLines={2} spacing="2" />{" "}

@@ -1,3 +1,7 @@
+/*
+Compone el encabezaco comun con titulo, banners de estado y controles de wallet
+*/
+
 import React from "react";
 import { Heading, VStack } from "@chakra-ui/react";
 import { StatusBanners } from "../status/StatusBanners";

@@ -1,3 +1,11 @@
+/**
+Contenedor que coordina el estado del formulario de minteo y delega la lógica a `useMinting`, pasando todo a `MintForm`.
+
+Declara y mantiene todo el estado necesario y prepara los handlers (useState's)
+
+Inicializa el hook useMinting
+ */
+
 import React from "react";
 import MintForm from "./MintForm";
 import { useMinting } from "../../../hooks/useMinting";

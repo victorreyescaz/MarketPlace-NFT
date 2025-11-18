@@ -1,3 +1,9 @@
+/*
+Renderiza los inputs de búsqueda/filtros y selector de orden para el marketplace global.
+
+Tambien muestra el conteo de resultados en resultCount para dar feedback inmediato
+ */
+
 import { Box, HStack, Input, Text } from "@chakra-ui/react";
 
 export function MarketplaceControls({

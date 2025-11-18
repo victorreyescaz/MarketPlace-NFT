@@ -1,3 +1,9 @@
+/*
+Barra de acciones ligada a la wallet: conecta/desconecta, recarga Mis NFTs, maneja proceeds y reinicia el marketplace global.
+
+Se utiliza dentro del HeaderSection para agrupar todas las acciones relacionadas con la wallet del usuario.
+ */
+
 import { Button, VStack, HStack, Text } from "@chakra-ui/react";
 import {
   AppKitConnectButton,
@@ -46,9 +52,9 @@ const WalletControls = ({
               Mis NFTs
             </Button>
 
-            <Button onClick = {() => {
+            <Button onClick = {async () => {
+              await refreshProceeds();
               showInfo("Saldo actualizado con éxito");
-              refreshProceeds();
             }}
               variant="outline">
               Actualizar saldo

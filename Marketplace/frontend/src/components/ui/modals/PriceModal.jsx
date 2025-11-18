@@ -1,3 +1,7 @@
+/*
+Modal controlado para listar/actualizar precio de un NFT, captura un precio en ETH y ejecuta `onConfirm`(devuelto por el hook usePriceModal) deshabilitando botones mientras envía.
+ */
+
 import { useEffect, useState } from "react";
 import { Box, Button, Heading, HStack, Input, Text } from "@chakra-ui/react";
 

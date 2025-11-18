@@ -1,3 +1,7 @@
+/*
+ Sección dedicada a los NFTs del usuario, maneja estados vacío/cargando y renderiza tarjetas `OwnerNFTCard` con acciones para listar, actualizar y cancelar.
+ */
+
 import { Box, Heading, SimpleGrid, Skeleton, SkeletonText, Text } from "@chakra-ui/react";
 import { DividerLine } from "../common/dividerLine";
 import { OwnerNFTCard } from "../nft/NFTCard";
@@ -60,7 +64,7 @@ export function MyNFTSection({
     return <EmptyState />;
   }
 
-  if (myNFTs.length === 0) return null;
+  if (myNFTs.length === 0) return null; // Oculta la seccion por completo si no hay datos y no hay conexion wallet
 
   return (
     <>

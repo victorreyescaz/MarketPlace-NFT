@@ -1,3 +1,11 @@
+/*
+`OwnerNFTCard` y `MarketplaceNFTCard` – tarjetas UI para mostrar NFTs propios o globales, con acciones como listar, cancelar, actualizar precio o comprar.
+
+---- `OwnerNFTCard` recibe el NFT del usuario y muestra imagen, datos y botones según esté listado: si ya lo está, muestra precio y permite cancelar o cambiar precio (solo para el dueño); si no, ofrece “Listar”
+
+---- `MarketplaceNFTCard` se usa en el marketplace global: muestra seller abreviado, precio y un botón “Comprar” que se desactiva si el NFT es del propio usuario (cantBuy) o si está ocupado (isBusy).
+ */
+
 import { Box, Button, Heading, HStack, Image, Stack, Text } from "@chakra-ui/react";
 
 export function OwnerNFTCard({
@@ -96,7 +104,7 @@ export function MarketplaceNFTCard({
         isLoading={buyLoading}
         isDisabled={cantBuy || isBusy}
         aria-busy={buyLoading}
-        style={isBusy ? { pointerEvents: "none" } : undefined}
+        style={isBusy ? { pointerEvents: "none" } : undefined} // style para que se vea pointer raton prohibicion
         title={cantBuy ? "No puedes comprar tu propio NFT" : undefined}
         onClick={onBuy}
       >

@@ -7,3 +7,4 @@ export * from "./usePriceModal";
 export * from "./useStatusBanner";
 export * from "./useTxLocks";
 export * from "./useWalletEvents";
+export * from "./useRequiredChanges";

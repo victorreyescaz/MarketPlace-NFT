@@ -1,4 +1,9 @@
-//   ===== Feedback visible de errores para el usuario =====
+/*
+Provider "StatusBannerContext"
+
+Centraliza el estado global de banners de error/info y expone `showError`/`showInfo` para que la UI muestre mensajes consistentes.
+ */
+
 
 import { useState } from "react";
 import { StatusBannerContext } from "./StatusBannerContext";

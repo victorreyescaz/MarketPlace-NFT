@@ -1,4 +1,9 @@
-import React from "react";
+/*
+ Compone el bloque completo del marketplace global, conectando filtros (`MarketplaceControls`) con el grid (`GlobalListings`) y sus acciones.
+
+ Pasa a MarketplaceControls los filtros actuales y handlers, y a GlobalListings los datos/acciones para renderizar y paginar las tarjetas NFT
+ */
+
 import { VStack, Heading } from "@chakra-ui/react";
 import { MarketplaceControls } from "./MarketplaceControls";
 import { GlobalListings } from "./GlobalListings";

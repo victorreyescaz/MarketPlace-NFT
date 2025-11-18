@@ -1,3 +1,7 @@
+/*
+Formulario controlado para mintear un NFT, incluyendo nombre, descripción, archivo, toggle de auto-listado y precio opcional.
+ */
+
 import { Button, HStack, Input, Textarea, VStack, Switch, Text} from "@chakra-ui/react";
 
 

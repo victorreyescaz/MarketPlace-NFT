@@ -1,3 +1,9 @@
+/**
+Muestra el grid paginado de NFTs listados globalmente, incluyendo skeletons, botón de “Cargar más” y lógica para comprar con locks.
+
+Renderiza los resultados del Marketplace Global
+ */
+
 import {
   Box,
   Button,

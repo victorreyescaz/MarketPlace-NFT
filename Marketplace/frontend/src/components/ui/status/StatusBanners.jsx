@@ -1,3 +1,7 @@
+/*
+Lee el contexto `useStatusBanner` para mostrar banners de error o información con botón de cierre manual.
+ */
+
 import { Box, Button, HStack, Text } from "@chakra-ui/react";
 import { useStatusBanner } from "../../../hooks/useStatusBanner";
 
