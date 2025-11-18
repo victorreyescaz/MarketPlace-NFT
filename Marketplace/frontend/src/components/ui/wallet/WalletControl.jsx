@@ -15,18 +15,19 @@ const WalletControls = ({
   proceedsEth = "0",
   loadingNFTs = false,
   loadingGlobal = false,
-  globalCursor = { done: true },
   loadMyNFTs,
   refreshProceeds,
-  withdrawProceeds,
+  handleWithdraw,
+  withdrawLoading = false,
   loadAllListings,
   showInfo,
   setQ = () => {},
   setMinP = () => {},
   setMaxP = () => {},
   setSort = () => {},
+  onMyNFTButtonClick,
+  showMyNFTs = false,
 }) => {
-  const cursorDone = globalCursor?.done ?? true;
 
   return (
     <VStack spacing={4} align="stretch">
@@ -41,13 +42,14 @@ const WalletControls = ({
         </>
       ) : (
         <>
-          <HStack justify="space-between" flexWrap="wrap" spacing={3}>
+          <HStack justify="space-between" flexWrap="wrap" spacing={3} alignContent={"stretch"}>
             <AppKitAccountButton namespace="eip155" balance="show" />
  
             <Button
-              onClick={() => loadMyNFTs?.()}
+              onClick={onMyNFTButtonClick || (() => loadMyNFTs?.())}
               isLoading={loadingNFTs}
               colorScheme="purple"
+              variant={showMyNFTs ? "solid" : "outline"}
             >
               Mis NFTs
             </Button>
@@ -60,7 +62,7 @@ const WalletControls = ({
               Actualizar saldo
             </Button>
 
-            <Button onClick={withdrawProceeds} isDisabled={Number(proceedsEth) <= 0}>
+            <Button onClick={handleWithdraw} isDisabled={withdrawLoading || Number(proceedsEth) <= 0} isLoading={withdrawLoading}>
               Retirar {proceedsEth} ETH
             </Button>
 
@@ -77,17 +79,6 @@ const WalletControls = ({
             >
               Marketplace Global
             </Button>
-
-            {!cursorDone && (
-              <Button
-                onClick={() => loadAllListings(false)}
-                isLoading={loadingGlobal}
-                isDisabled={loadingGlobal}
-                variant="outline"
-              >
-                Cargar más
-              </Button>
-            )}
           </HStack>
         </>
       )}

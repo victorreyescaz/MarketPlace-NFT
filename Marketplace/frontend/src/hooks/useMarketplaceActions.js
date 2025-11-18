@@ -21,6 +21,7 @@ export function useMarketplaceActions({
   showError,
   showInfo,
   loadMyNFTs,
+  loadAllListings,
   setProceedsEth,
 }) {
   const getSigner = useCallback(async () => {
@@ -111,8 +112,9 @@ export function useMarketplaceActions({
       await tx.wait();
       showInfo?.("✅ Precio actualizado");
       await loadMyNFTs?.();
+      await loadAllListings?.();
     },
-    [getSigner, loadMyNFTs, showInfo]
+    [getSigner, loadMyNFTs, loadAllListings, showInfo]
   );
 
   const cancelListing = useCallback(
@@ -128,8 +130,9 @@ export function useMarketplaceActions({
       await tx.wait();
       showInfo?.("✅ Listado cancelado");
       await loadMyNFTs?.();
+      await loadAllListings?.();
     },
-    [getSigner, loadMyNFTs, showInfo]
+    [getSigner, loadAllListings, loadMyNFTs, showInfo]
   );
 
   const refreshProceeds = useCallback(async () => {
@@ -209,11 +212,20 @@ export function useMarketplaceActions({
 
         showInfo?.("✅ NFT comprado", 3000);
         await loadMyNFTs?.();
+        await loadAllListings?.();
       } catch (err) {
         showError?.(err, "❌ Error al comprar");
       }
     },
-    [address, getSigner, loadMyNFTs, showError, showInfo, walletProvider]
+    [
+      address,
+      getSigner,
+      loadAllListings,
+      loadMyNFTs,
+      showError,
+      showInfo,
+      walletProvider,
+    ]
   );
 
   return {

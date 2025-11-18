@@ -2,7 +2,7 @@
  Sección dedicada a los NFTs del usuario, maneja estados vacío/cargando y renderiza tarjetas `OwnerNFTCard` con acciones para listar, actualizar y cancelar.
  */
 
-import { Box, Heading, SimpleGrid, Skeleton, SkeletonText, Text } from "@chakra-ui/react";
+import { Box, Button, Heading, HStack, SimpleGrid, Skeleton, SkeletonText, Text } from "@chakra-ui/react";
 import { DividerLine } from "../common/dividerLine";
 import { OwnerNFTCard } from "../nft/NFTCard";
 
@@ -53,6 +53,7 @@ export function MyNFTSection({
   openUpdateModal,
   openListModal,
   isConnected,
+  onClose,
 
 }) {
   
@@ -69,7 +70,10 @@ export function MyNFTSection({
   return (
     <>
       <DividerLine />
+      <HStack justify={"space-between"}>
       <Heading size="lg">Mis NFTs</Heading>
+      <Button size={"sm"} onClick={onClose}>Ocultar</Button>
+      </HStack>
       <SimpleGrid columns={[1, 2, 3]} spacing={5}>
         {myNFTs.map((nft) => {
           const me = address?.toLowerCase?.() || "";

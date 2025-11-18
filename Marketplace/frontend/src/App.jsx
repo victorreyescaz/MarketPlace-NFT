@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, VStack } from "@chakra-ui/react";
 import { useAppKitProvider, useAppKitAccount, useAppKit } from "@reown/appkit/react";
 /* 
@@ -34,14 +34,16 @@ function App() {
   const SUPPORTED_CHAINS_IDS = new Set([11155111]);
   const wrongNetwork = isConnected && chainId && !SUPPORTED_CHAINS_IDS.has(Number(chainId));
 
-// Provider publico que usaremos para mostrar el Marketplace Global cuando no haya una wallet conectada
-const READ_RPC = import.meta.env.READ_RPC;
+  // Provider publico que usaremos para mostrar el Marketplace Global cuando no haya una wallet conectada
+  const READ_RPC = import.meta.env.READ_RPC;
 
-const publicProvider = useMemo(() => 
-  READ_RPC ? new ethers.JsonRpcProvider(READ_RPC):null, [READ_RPC]);
+  const publicProvider = useMemo(() => 
+    READ_RPC ? new ethers.JsonRpcProvider(READ_RPC):null, [READ_RPC]);
 
-const readProvider = walletProvider ?? publicProvider;
-const preferBackend = !walletProvider && !READ_RPC;
+  const readProvider = walletProvider ?? publicProvider;
+  const preferBackend = !walletProvider && !READ_RPC;
+
+  const [showMyNFTs, setShowMyNFTs] = useState(false);
 
   const {showError, showInfo} = useStatusBanner(); 
 
@@ -58,6 +60,17 @@ const preferBackend = !walletProvider && !READ_RPC;
     isConnected,
     showError,
   });
+
+  const handleMyNFTButtonClick = () => {
+    if (!showMyNFTs) {
+      setShowMyNFTs(true);
+    }
+    loadMyNFTs?.();
+  };
+
+  const handleHideMyNFTs = () => {
+    setShowMyNFTs(false);
+  }
 
   const {
     allListings,
@@ -96,11 +109,18 @@ const preferBackend = !walletProvider && !READ_RPC;
     showError,
     showInfo,
     loadMyNFTs,
+    loadAllListings,
     setProceedsEth,
   });
 
   const { listToken, updateListing, cancelListing, buyToken, refreshProceeds, withdrawProceeds } =
     marketplaceActionsHook;
+
+  const withdrawLockKey = "wallet:withdraw";
+  const handleWithdraw = useCallback((evt) => runWithLock(withdrawLockKey, evt, withdrawProceeds),
+  [runWithLock, withdrawProceeds]
+  );
+  const withdrawLoading = !!txLoading[withdrawLockKey];
 
   const marketplaceListings = {
     filteredGlobal,
@@ -126,7 +146,8 @@ const preferBackend = !walletProvider && !READ_RPC;
     loadMyNFTs,
     loadingNFTs,
     refreshProceeds,
-    withdrawProceeds,
+    handleWithdraw,
+    withdrawLoading,
     proceedsEth,
     loadAllListings,
     loadingGlobal,
@@ -136,6 +157,8 @@ const preferBackend = !walletProvider && !READ_RPC;
     setMinP,
     setMaxP,
     setSort,
+    onMyNFTButtonClick: handleMyNFTButtonClick,
+    showMyNFTs,
   };
 
   const {
@@ -188,7 +211,7 @@ const preferBackend = !walletProvider && !READ_RPC;
       }
     },[wrongNetwork, showError]);
 
-  /* ==========================Render=================================*/ 
+  /* ========================== Render =================================*/ 
 
 return (
   <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
@@ -212,21 +235,24 @@ return (
 
     {/* Carga galería (Mis NFTs)*/}
 
-    <MyNFTSection
-    loadingNFTs={loadingNFTs}
-    myNFTs={myNFTs}
-    address={address}
-    kCancel={kCancel}
-    kList={kList}
-    txLoading={txLoading}
-    isTokenBusy={isTokenBusy}
-    runWithLock={runWithLock}
-    cancelListing={cancelListing}
-    openUpdateModal={openUpdateModal}
-    openListModal={openListModal}
-    isConnected={isConnected}
-    wrongNetwork={wrongNetwork}
-    />
+    {showMyNFTs && (
+      <MyNFTSection
+      loadingNFTs={loadingNFTs}
+      myNFTs={myNFTs}
+      address={address}
+      kCancel={kCancel}
+      kList={kList}
+      txLoading={txLoading}
+      isTokenBusy={isTokenBusy}
+      runWithLock={runWithLock}
+      cancelListing={cancelListing}
+      openUpdateModal={openUpdateModal}
+      openListModal={openListModal}
+      isConnected={isConnected}
+      wrongNetwork={wrongNetwork}
+      onClose={handleHideMyNFTs}
+      />
+    )}
 
     <GlobalMarketplaceSection
       filters={marketplaceFilters}

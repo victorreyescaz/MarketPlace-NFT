@@ -2,18 +2,15 @@ _______________________________________________________________
 TENER TODO ESTO IMPLEMENTADO ANTES DE EMPEZAR CON LA PERSONALIZACION DEL FRONTEND
 _______________________________________________________________
 
--- Auto-refresh del Marketplace Global tras listar/comprar/cancelar/actualizar precio. Añadir ShowInfos como hacemos cuando compramos, iniciando peticion... iniciando transaccion... NFT comprado
-Pinta ItemListed / ItemBought / ItemCanceled con fecha y bloque; queda 🔥 para un marketplace.
+-- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton. Poner un aviso si clicamos para retirar teniendo 0.0ETH
 
 -- Al hacer hover en el precio del NFT, sea en Mis Nfts o en el marketplace mostrar precio en $, conectarlo con coinmarketcap o coingecko
 
 --  Revisar variables de entorno del frontend, mover las que sean criticas al backend e utilizar el marketplaceApi para poder acceder a ellas desde el frontend
 
--- Introducir spinners en momentos de carga que vea necesario
-
--- En el boton Retirar proceeds de la UI, añadir un isloading= loadingWithdraw (crear funcion) para esperar confirmacion y bloquear el boton. Poner un aviso si clicamos para retirar teniendo 0.0ETH
-
 --- Poder mintear mas de un NFT a la vez, una coleccion
+
+-- Introducir spinners en momentos de carga que vea necesario
 
 --- Como pondriamos la aplicacion en produccion??
 ______________________________________________________________________________________________________________________________
