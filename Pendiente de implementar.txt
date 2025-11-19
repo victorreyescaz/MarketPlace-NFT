@@ -2,17 +2,14 @@ _______________________________________________________________
 TENER TODO ESTO IMPLEMENTADO ANTES DE EMPEZAR CON LA PERSONALIZACION DEL FRONTEND
 _______________________________________________________________
 
--- Al hacer hover en el precio del NFT, sea en Mis Nfts o en el marketplace mostrar precio en $, conectarlo con coinmarketcap o coingecko
-
---  Revisar variables de entorno del frontend, mover las que sean criticas al backend e utilizar el marketplaceApi para poder acceder a ellas desde el frontend
+-- Introducir spinners en momentos de carga que vea necesario
 
 --- Poder mintear mas de un NFT a la vez, una coleccion
 
--- Introducir spinners en momentos de carga que vea necesario
+--- Es correcto tener backend y frontend en el mismo proyecto?
 
 --- Como pondriamos la aplicacion en produccion??
 
---- Es correcto tener backend y frontend en el mismo proyecto?
 ______________________________________________________________________________________________________________________________
 ______________________________________________________________________________________________________________________________
 
@@ -43,3 +40,7 @@ Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y
 -- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
 
 -- Cambiar todos los alert por showInfo, queda mas bonito
+
+-- Igual que hemos hecho en el marketplace, el tooltip para ver en tiempo real la conversion entre ETH y USD, hacerlo al listar un NFT, tanto en listar cuando esta minteado como cuando queremos mintearlo y listarlo a la vez
+
+-- Boton ocultar en Marketplace Global??

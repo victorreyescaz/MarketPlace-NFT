@@ -16,6 +16,8 @@ if (!PINATA_JWT) {
   process.exit(1);
 }
 
+const APPKIT_PROJECT_ID = process.env.APPKIT_PROJECT_ID?.trim();
+
 const COINGECKO_ETH_PRICE =
   "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd";
 let cachedEthPrice = null;
@@ -29,6 +31,13 @@ app.use(
 );
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
+
+app.get("/api/config/appkit", (_req, res) => {
+  if (!APPKIT_PROJECT_ID) {
+    return res.status(500).json({ error: "Appkit Project ID no configurado" });
+  }
+  res.json({ projectId: APPKIT_PROJECT_ID });
+});
 
 app.use("/api/marketplace", marketplaceRouter);
 
