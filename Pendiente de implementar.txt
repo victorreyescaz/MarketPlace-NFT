@@ -1,41 +1,36 @@
 _______________________________________________________________
-TENER TODO ESTO IMPLEMENTADO ANTES DE EMPEZAR CON LA PERSONALIZACION DEL FRONTEND
+DESARROLLANDO
 _______________________________________________________________
 
--- Introducir spinners en momentos de carga que vea necesario
+-- Añadir pequeño footer con informacion del creador o lo que se me ocurra
 
---- Poder mintear mas de un NFT a la vez, una coleccion
-
---- Es correcto tener backend y frontend en el mismo proyecto?
-
---- Como pondriamos la aplicacion en produccion??
+--- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2 
 
 ______________________________________________________________________________________________________________________________
+CAMBIOS EN CONTRATOS SOLIDITY
 ______________________________________________________________________________________________________________________________
 
 -- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
 Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.Implementarla en el frontend para poder quemar tokens
 
--- Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
+--- Poder mintear mas de un NFT a la vez, una coleccion. Crear una fucion multi-mining en el marketplace.sol
 
 -- Implementar funcion approve de contrato solidity para dar permisos a un tercero para gestionar los NFTs
+______________________________________________________________________________________________________________________________
+______________________________________________________________________________________________________________________________
+
+-- Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
 
 -- Badges de estado en las cards
 “Listado”, “No listado”, “Tuyo” (ya muestras “Tu NFT”, pero puedes añadir un Badge en la card).
 
 -- Toasts agradables (si migras banners a useToast de Chakra)
 
--- Índice local + cache de metadatos
-
 -- Memoriza tokenURI → metadata en un Map (o localStorage) para evitar refetch en cada apertura.
 
 -- Histórico de actividad (on-chain)
 
--- UX: “Volver / Cambiar vista”
-
 -- Toggle entre “Mis NFTs” y “Marketplace Global” (estado view), ocultando la otra sección.
-
--- Añadir pequeño footer con informacion del creador o lo que se me ocurra
 
 -- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
 
@@ -44,3 +39,9 @@ Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y
 -- Igual que hemos hecho en el marketplace, el tooltip para ver en tiempo real la conversion entre ETH y USD, hacerlo al listar un NFT, tanto en listar cuando esta minteado como cuando queremos mintearlo y listarlo a la vez
 
 -- Boton ocultar en Marketplace Global??
+
+-- Introducir spinners en momentos de carga que vea necesario
+
+-- Emitir royalties o rewards al mintear, comprar, lo que se me ocurra
+
+-- Posibilidad de comprar varios NFT a la vez, poder seleccionar varios y luego comprarlos

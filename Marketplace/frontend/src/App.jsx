@@ -23,6 +23,7 @@ import { HeaderSection } from "./components/ui/header/HeaderSection";
 import { useMarketplaceAutoload } from "./hooks/useMarketplaceAutoload";
 import { ethers } from "ethers";
 import { useEthPrice } from "./hooks/useEthPrice";
+import { FooterSection } from "./components/ui/footer/FooterSection";
 
 
 
@@ -221,7 +222,7 @@ function App() {
 return (
   <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
 
-    <Box position="sticky" top={0} zIndex={10} bg="gray.900" p={3}>
+    <Box position="sticky" top={0} zIndex={10} p={3}>
     <HeaderSection walletProps={walletProps} />
     </Box>
 
@@ -271,14 +272,16 @@ return (
 
 {/* === Modal de precio inline para listar o actualizar precio NFT  === */}
 
-<PriceModal
-  isOpen={priceModal?.isOpen}
-  mode={priceModal?.mode}
-  name={priceModal?.name}
-  defaultPrice={priceModal?.defaultPrice}
-  onClose={closePriceModal}
-  onConfirm={confirmPrice}
-/>
+    <PriceModal
+      isOpen={priceModal?.isOpen}
+      mode={priceModal?.mode}
+      name={priceModal?.name}
+      defaultPrice={priceModal?.defaultPrice}
+      onClose={closePriceModal}
+      onConfirm={confirmPrice}
+    />
+
+    <FooterSection/>
 
   </VStack>
 );

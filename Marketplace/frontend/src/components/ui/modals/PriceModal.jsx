@@ -84,7 +84,7 @@ export function PriceModal({
             Cancelar
           </Button>
           <Button
-            colorScheme="blue"
+            colorPalette="blue"
             isLoading={isSubmitting}
             isDisabled={isSubmitting}
             onClick={handleConfirm}

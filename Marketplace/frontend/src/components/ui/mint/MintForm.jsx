@@ -86,7 +86,7 @@ export default function MintForm({
         <Button 
         
         onClick={onMint} 
-        colorScheme="blue"
+        colorPalette="blue"
         disabled={!isConnected || !file || !name || busy || needsPrice}
         >
 

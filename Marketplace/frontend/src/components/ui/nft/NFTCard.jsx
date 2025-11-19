@@ -6,7 +6,7 @@
 ---- `MarketplaceNFTCard` se usa en el marketplace global: muestra seller abreviado, precio y un botón “Comprar” que se desactiva si el NFT es del propio usuario (cantBuy) o si está ocupado (isBusy).
  */
 
-import { Box, Button, Heading, HStack, Image, Stack, Text } from "@chakra-ui/react";
+import { Box, Button, Center, Flex, Heading, HStack, Image, Stack, Text } from "@chakra-ui/react";
 import { Tooltip } from "../tooltip";
 
 const formatUsd = (eth, usd) => {
@@ -39,8 +39,10 @@ export function OwnerNFTCard({
         : formatUsd(nft.priceEth, priceData.priceUsd);
 
     return(
-        <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
-            <Image src={nft.image} alt={nft.name} />
+        <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p={3}>
+          <Box height= "250px" width="100%" bg="gray.900" display="flex" alignItems="center" justifyContent= "center">
+            <Image src={nft.image} alt={nft.name} width="100%" height="100%" objectFit={"cover"}/>
+          </Box>
             <Heading size="md" mt="2">{nft.name}</Heading>
             <Text fontSize="sm" color="gray.600">{nft.description}</Text>
             <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
@@ -73,6 +75,7 @@ export function OwnerNFTCard({
                 isOwner && (
                     <Button
                         size="sm"
+                        colorPalette="purple"
                         isDisabled={isBusy || listLoading}
                         isLoading={listLoading}
                         onClick={() => onList?.(nft)}>
@@ -128,7 +131,7 @@ export function MarketplaceNFTCard({
 
       <Button
         size="sm"
-        colorScheme="green"
+        colorPalette="green"
         mt="2"
         isLoading={buyLoading}
         isDisabled={cantBuy || isBusy}
