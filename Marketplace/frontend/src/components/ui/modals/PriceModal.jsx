@@ -4,31 +4,57 @@ Modal controlado para listar/actualizar precio de un NFT, captura un precio en E
 
 import { useEffect, useState } from "react";
 import { Box, Button, Heading, HStack, Input, Text } from "@chakra-ui/react";
+import { useEthPrice } from "../../../hooks/useEthPrice";
 
 export function PriceModal({
   isOpen,
   mode,
   name,
-  defaultPrice,
+  defaultPriceEth,
+  defaultPriceDolar,
   onClose,
   onConfirm,
   
 }) {
-  const [price, setPrice] = useState(defaultPrice ?? "");
+  const [priceEth, setPriceEth] = useState(defaultPriceEth ?? "");
+  const [priceDolar, setPriceDolar] = useState(defaultPriceDolar ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {priceUsd: usdPerEth, loading: priceLoading, error: priceError} = useEthPrice();
+
+  const [lastEdited, setLastEdited] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
-      setPrice(defaultPrice ?? "");
+      setPriceEth(defaultPriceEth ?? "");
+      setPriceDolar(defaultPriceDolar ?? "");
       setIsSubmitting(false);
+      setLastEdited(null);
     }
-  }, [defaultPrice, isOpen]);
+  }, [defaultPriceEth, defaultPriceDolar, isOpen]);
+
+  // Effect de conversion bidireccional (ETH/USD)
+
+  useEffect(() => {
+    if (!usdPerEth) return;
+
+    if (lastEdited === "eth"){
+      const n = parseFloat(priceEth);
+      setPriceDolar(Number.isFinite(n) ? (n*usdPerEth).toFixed(2) : "");
+    } else if (lastEdited === "usd") {
+      const n = parseFloat(priceDolar);
+      setPriceEth(Number.isFinite(n) ? (n/usdPerEth).toFixed(4) : "");
+    }
+  }, [lastEdited, priceEth, priceDolar, usdPerEth]);
+
 
   const handleConfirm = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || priceLoading) return;
     setIsSubmitting(true);
     try{
-      await onConfirm?.(price);
+      await onConfirm?.({ 
+        eth: Number(priceEth),
+      });
     } finally{
       setIsSubmitting(false);
     }
@@ -68,11 +94,41 @@ export function PriceModal({
         )}
 
         <Text mb="2">💰 Precio (ETH)</Text>
-        <Input
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
+        <Input mb={"2"}
+          value={priceEth}
+          onChange={(e) => {
+            setPriceEth(e.target.value);
+            setLastEdited("eth");
+          }}
           type="number"
           step="0.0001"
+          min="0"
+          bg="gray.700"
+          color="white"
+          _placeholder={{ color: "gray.400" }}
+        />
+
+        {usdPerEth && (
+          <Text mt={1} fontSize={"sm"} color={"gray.400"} >
+            1 ETH ≈ ${usdPerEth.toFixed(2)}
+          </Text>
+        )}
+
+        {priceError && (
+          <Text>
+            No se pudo obtener la tasa en vivo. Ingresa solo el valor en ETH.
+          </Text>
+        )}
+
+        <Text mb="2">💰 Precio ($)</Text>
+        <Input mb={"2"}
+          value={priceDolar}
+          onChange={(e) => {
+            setPriceDolar(e.target.value);
+            setLastEdited("usd");
+          }}
+          type="number"
+          step="0.01"
           min="0"
           bg="gray.700"
           color="white"
@@ -86,7 +142,7 @@ export function PriceModal({
           <Button
             colorPalette="blue"
             isLoading={isSubmitting}
-            isDisabled={isSubmitting}
+            isDisabled={isSubmitting || priceLoading}
             onClick={handleConfirm}
           >
             Confirmar

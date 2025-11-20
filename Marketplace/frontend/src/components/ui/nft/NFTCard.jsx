@@ -41,36 +41,37 @@ export function OwnerNFTCard({
     return(
         <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p={3}>
           <Box height= "250px" width="100%" bg="gray.900" display="flex" alignItems="center" justifyContent= "center">
-            <Image src={nft.image} alt={nft.name} width="100%" height="100%" objectFit={"cover"}/>
+            <Image src={nft.image} alt={nft.name} width="100%" height="100%" objectFit={"contain"}/>
           </Box>
-            <Heading size="md" mt="2">{nft.name}</Heading>
-            <Text fontSize="sm" color="gray.600">{nft.description}</Text>
-            <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
+          <Heading size="md" mt="2">{nft.name}</Heading>
+          <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+          <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
 
-            <Stack mt="3" spacing={2}>
-              {nft.listed ? (
-            <>
-                <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
-                  <Text mt="1">💰 {nft.priceEth} ETH</Text>
-                </Tooltip>
-                {isOwner && (
-                    <HStack>
-                        <Button
-                            size="sm"
-                            isLoading={cancelLoading}
-                            isDisabled={isBusy}
-                            onClick={(e) => onCancel?.(nft, e)}>
-                        Cancelar
-                        </Button>
+          <Stack mt="3" spacing={2}>
+            {nft.listed ? (
+          <>
+              <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
+                <Text mt="1">💰 {nft.priceEth} ETH</Text>
+              </Tooltip>
+              {isOwner && (
+                  <HStack justify={"center"}>
+                      <Button
+                          size="sm"
+                          colorPalette="red"
+                          isLoading={cancelLoading}
+                          isDisabled={isBusy}
+                          onClick={(e) => onCancel?.(nft, e)}>
+                      Cancelar
+                      </Button>
 
-                        <Button
-                        size="sm"
-                        onClick= {() => onUpdatePrice?.(nft)}>
-                        Cambiar precio
-                        </Button>
-                    </HStack>
-                )}
-            </>
+                      <Button
+                      size="sm"
+                      onClick= {() => onUpdatePrice?.(nft)}>
+                      Cambiar precio
+                      </Button>
+                  </HStack>
+              )}
+          </>
         ) : (
                 isOwner && (
                     <Button
@@ -118,7 +119,9 @@ export function MarketplaceNFTCard({
       overflow="hidden"
       p="3"
     >
-      <Image src={nft.image} alt={nft.name} />
+      <Box height= "250px" width="100%" bg="gray.900" display="flex" alignItems="center" justifyContent= "center">
+        <Image src={nft.image} alt={nft.name} width="100%" height="100%" objectFit={"contain"} />
+      </Box>
       <Heading size="md" mt="2">{nft.name}</Heading>
       <Text fontSize="sm" color="gray.600">{nft.description}</Text>
       <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>

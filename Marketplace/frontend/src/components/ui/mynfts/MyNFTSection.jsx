@@ -75,7 +75,7 @@ export function MyNFTSection({
       <Heading size="lg">Mis NFTs</Heading>
       <Button size={"sm"} onClick={onClose}>Ocultar</Button>
       </HStack>
-      <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      <SimpleGrid columns={[1, 2, 3]} spacing={5} gap={2}>
         {myNFTs.map((nft) => {
           const me = address?.toLowerCase?.() || "";
           const ownerLower = nft.owner?.toLowerCase?.() || "";

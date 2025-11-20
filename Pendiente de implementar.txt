@@ -2,9 +2,17 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
--- Añadir pequeño footer con informacion del creador o lo que se me ocurra
+-- Boton comprar/Tu nft en marketplace que ocupe todo el box
 
---- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2 
+-- Grids o flex de myNFT y marketplace en 6 en vez de en 3
+
+-- Ocultar seccion Mintear NFT, poner un boton para hacerlo.
+
+-- Introducir tipografias para los titulos
+
+-- Valorar poner fondo o un gradient quizas
+
+--- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2
 
 ______________________________________________________________________________________________________________________________
 CAMBIOS EN CONTRATOS SOLIDITY

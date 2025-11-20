@@ -70,7 +70,7 @@ export function GlobalListings({
 
   return (
     <>
-      <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      <SimpleGrid columns={[1, 2, 3]} spacing={5} gap={2}>
         {filteredGlobal.map((nft) => {
           const cantBuy = (nft.seller || "").toLowerCase() === me;
           const buyKey = kBuy(nft.tokenId);
