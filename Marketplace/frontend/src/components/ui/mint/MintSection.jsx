@@ -18,7 +18,7 @@ export function MintSection({
   showInfo,
   listToken,
   loadMyNFTs,
-
+  onClose,
 }) {
 
   const [name, setName] = React.useState("");
@@ -59,6 +59,7 @@ export function MintSection({
       onDescChange={setDesc}
       onFileChange={onPickFile}
       onMint={handleMint}
+      onClose={onClose}
       busy={busy}
       isConnected={isConnected}
       file={file}

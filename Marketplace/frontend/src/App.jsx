@@ -47,9 +47,11 @@ function App() {
 
   const [showMyNFTs, setShowMyNFTs] = useState(false);
 
+  const [showMint, setShowMint] = useState(false);
+
   const {showError, showInfo} = useStatusBanner(); 
 
-   const ethPrice = useEthPrice();
+  const ethPrice = useEthPrice();
 
   const {
     myNFTs,
@@ -65,15 +67,28 @@ function App() {
     showError,
   });
 
+  // Handlers MyNFTSection
   const handleMyNFTButtonClick = () => {
-    if (!showMyNFTs) {
-      setShowMyNFTs(true);
-    }
-    loadMyNFTs?.();
+    setShowMyNFTs((prev) => {
+      const next = !prev;
+      if(next) {
+        loadMyNFTs?.();
+      }
+      return next;
+    })
   };
 
   const handleHideMyNFTs = () => {
     setShowMyNFTs(false);
+  }
+
+  // Handlers MintSection
+  const handleMintClick = () => {
+    setShowMint((prev) => !prev);
+  }
+
+  const handleHideMint = () => {
+    setShowMint(false);
   }
 
   const {
@@ -162,7 +177,9 @@ function App() {
     setMaxP,
     setSort,
     onMyNFTButtonClick: handleMyNFTButtonClick,
+    onMintFormClick: handleMintClick,
     showMyNFTs,
+    showMint,
   };
 
   const {
@@ -228,16 +245,19 @@ return (
 
     {/* Formulario de minteo*/}
     
+    {showMint && (
     <MintSection
       walletProvider={walletProvider}
       isConnected={isConnected}
       open={open}
+      onClose={handleHideMint}
       showError={showError}
       showInfo={showInfo}
       wrongNetwork={wrongNetwork}
       listToken={listToken}
       loadMyNFTs={loadMyNFTs}
     />
+    )}
 
     {/* Carga galería (Mis NFTs)*/}
 

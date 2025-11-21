@@ -10,8 +10,10 @@ const WalletControls = ({
   isConnected,
   proceedsEth = "0",
   loadingNFTs = false,
+  loadingMint = false,
   loadingGlobal = false,
   loadMyNFTs,
+  mintForm,
   refreshProceeds,
   handleWithdraw,
   withdrawLoading = false,
@@ -22,7 +24,9 @@ const WalletControls = ({
   setMaxP = () => {},
   setSort = () => {},
   onMyNFTButtonClick,
+  onMintFormClick,
   showMyNFTs = false,
+  showMint = false,
 }) => {
 
   if (!isConnected) {
@@ -32,6 +36,15 @@ const WalletControls = ({
   return (
     <VStack spacing={4} align="stretch">
       <HStack justify="center" flexWrap="wrap" spacing={3} alignContent={"stretch"}>
+
+        <Button
+          onClick={onMintFormClick || (() => mintForm?.())}
+          isLoading={loadingMint}
+          colorPalette={"blue"}
+          variant={showMint ? "solid" : "outline"}
+        >
+          Mintear NFT
+        </Button>
         <Button
           onClick={onMyNFTButtonClick || (() => loadMyNFTs?.())}
           isLoading={loadingNFTs}

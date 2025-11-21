@@ -6,7 +6,7 @@
 ---- `MarketplaceNFTCard` se usa en el marketplace global: muestra seller abreviado, precio y un botón “Comprar” que se desactiva si el NFT es del propio usuario (cantBuy) o si está ocupado (isBusy).
  */
 
-import { Box, Button, Center, Flex, Heading, HStack, Image, Stack, Text } from "@chakra-ui/react";
+import { Box, Button, Heading, HStack, Image, Stack, Text } from "@chakra-ui/react";
 import { Tooltip } from "../tooltip";
 
 const formatUsd = (eth, usd) => {
@@ -39,23 +39,24 @@ export function OwnerNFTCard({
         : formatUsd(nft.priceEth, priceData.priceUsd);
 
     return(
-        <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p={3}>
+        <Box borderWidth="1px" borderRadius="lg" overflow="hidden" p={3} display={"flex"} flexDir={"column"} h={"100%"} >
           <Box height= "250px" width="100%" bg="gray.900" display="flex" alignItems="center" justifyContent= "center">
             <Image src={nft.image} alt={nft.name} width="100%" height="100%" objectFit={"contain"}/>
           </Box>
           <Heading size="md" mt="2">{nft.name}</Heading>
-          <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+          <Text fontSize="sm" color="gray.600">{nft.description || "Description: none"}</Text>
           <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
 
-          <Stack mt="3" spacing={2}>
+          <Stack mt="3" spacing={2} flex={"1"}>
             {nft.listed ? (
           <>
               <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
                 <Text mt="1">💰 {nft.priceEth} ETH</Text>
               </Tooltip>
               {isOwner && (
-                  <HStack justify={"center"}>
+                  <HStack justify={"center"} gap={1}>
                       <Button
+                          ml={1}
                           size="sm"
                           colorPalette="red"
                           isLoading={cancelLoading}
@@ -65,6 +66,7 @@ export function OwnerNFTCard({
                       </Button>
 
                       <Button
+                      mr={1}
                       size="sm"
                       onClick= {() => onUpdatePrice?.(nft)}>
                       Cambiar precio
@@ -74,14 +76,18 @@ export function OwnerNFTCard({
           </>
         ) : (
                 isOwner && (
+                  <Stack flex="1">
                     <Button
+                        mt={"auto"}
                         size="sm"
+                        width={"full"}
                         colorPalette="purple"
                         isDisabled={isBusy || listLoading}
                         isLoading={listLoading}
                         onClick={() => onList?.(nft)}>
-                    Listar
-                  </Button>
+                      Listar
+                    </Button>
+                  </Stack>
                 )
               )}
             </Stack>
@@ -123,28 +129,28 @@ export function MarketplaceNFTCard({
         <Image src={nft.image} alt={nft.name} width="100%" height="100%" objectFit={"contain"} />
       </Box>
       <Heading size="md" mt="2">{nft.name}</Heading>
-      <Text fontSize="sm" color="gray.600">{nft.description}</Text>
+      <Text fontSize="sm" color="gray.600">{nft.description || "Description: none"}</Text>
       <Text fontSize="xs" color="gray.400">ID: {nft.tokenId}</Text>
       <Text>
         Vendedor: {sellerShort}
       </Text>
-      <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
-        <Text mt="1">💰 {nft.priceEth} ETH</Text>
-      </Tooltip>
+      <Text mt="1">💰 {nft.priceEth} ETH</Text>
 
-      <Button
-        size="sm"
-        colorPalette="green"
-        mt="2"
-        isLoading={buyLoading}
-        isDisabled={cantBuy || isBusy}
-        aria-busy={buyLoading}
-        style={isBusy ? { pointerEvents: "none" } : undefined} // style para que se vea pointer raton prohibicion
-        title={cantBuy ? "No puedes comprar tu propio NFT" : undefined}
-        onClick={onBuy}
-      >
-        {cantBuy ? "Tu NFT" : "Comprar"}
-      </Button>
+      <Tooltip content={usdLabel} disabled={!usdLabel} openDelay={150}>
+        <Button
+          width="full"
+          size="sm"
+          colorPalette="green"
+          mt="2"
+          isLoading={buyLoading}
+          isDisabled={cantBuy || isBusy}
+          aria-busy={buyLoading}
+          style={isBusy ? { pointerEvents: "none" } : undefined} // style para que se vea pointer raton prohibicion
+          onClick={onBuy}
+        >
+          {cantBuy ? "Tu NFT" : "Comprar"}
+        </Button>
+      </Tooltip>
     </Box>
   );
 }

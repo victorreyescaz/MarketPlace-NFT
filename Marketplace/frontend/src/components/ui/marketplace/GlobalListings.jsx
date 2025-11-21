@@ -52,7 +52,7 @@ export function GlobalListings({
 
   if (loadingGlobal && filteredGlobal.length === 0) {
     return (
-      <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      <SimpleGrid columns={[1, 2, 3, 4]} spacing={5}>
         {Array.from({ length: skeletonCount }).map((_, i) => (
           <GlobalSkeletonCard key={`global-skel-${i}`} />
         ))}
@@ -70,7 +70,7 @@ export function GlobalListings({
 
   return (
     <>
-      <SimpleGrid columns={[1, 2, 3]} spacing={5} gap={2}>
+      <SimpleGrid columns={[1, 2, 3, 4]} spacing={5} gap={2}>
         {filteredGlobal.map((nft) => {
           const cantBuy = (nft.seller || "").toLowerCase() === me;
           const buyKey = kBuy(nft.tokenId);

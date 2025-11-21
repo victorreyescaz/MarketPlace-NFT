@@ -11,7 +11,7 @@ export function LoadingSkeletons() {
     <>
       <DividerLine />
       <Heading size="lg">Mis NFTs</Heading>
-      <SimpleGrid columns={[1, 2, 3]} spacing={5}>
+      <SimpleGrid columns={[1, 2, 3, 4]} spacing={5}>
         {Array.from({ length: 6 }).map((_, i) => (
           <Box key={`mynft-skel-${i}`} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
             <Skeleton height="220px" />
@@ -53,7 +53,6 @@ export function MyNFTSection({
   openUpdateModal,
   openListModal,
   isConnected,
-  onClose,
   ethPrice,
 
 }) {
@@ -73,9 +72,8 @@ export function MyNFTSection({
       <DividerLine />
       <HStack justify={"space-between"}>
       <Heading size="lg">Mis NFTs</Heading>
-      <Button size={"sm"} onClick={onClose}>Ocultar</Button>
       </HStack>
-      <SimpleGrid columns={[1, 2, 3]} spacing={5} gap={2}>
+      <SimpleGrid columns={[1, 2, 3, 4]} spacing={5} gap={2}>
         {myNFTs.map((nft) => {
           const me = address?.toLowerCase?.() || "";
           const ownerLower = nft.owner?.toLowerCase?.() || "";

@@ -2,15 +2,13 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
--- Boton comprar/Tu nft en marketplace que ocupe todo el box
-
--- Grids o flex de myNFT y marketplace en 6 en vez de en 3
-
--- Ocultar seccion Mintear NFT, poner un boton para hacerlo.
-
 -- Introducir tipografias para los titulos
 
+-- Menu hamburguesa para resoluciones moviles o resoluciones muy pequeñas en desktop
+
 -- Valorar poner fondo o un gradient quizas
+
+-- Revisar errores infinitos y escribir alguna frase en vez de ese error
 
 --- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2
 
