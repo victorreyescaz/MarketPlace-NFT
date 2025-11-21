@@ -17,7 +17,6 @@ export function HeaderSection({ title = "NFT Marketplace", walletProps }) {
     <VStack 
     spacing={6} 
     align="stretch"
-    bgColor="black"
     p={2}
     >
       <HStack justify="space-between" align="center" flexWrap="wrap" spacing={4}>

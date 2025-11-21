@@ -2,11 +2,11 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
+-- Formulario de Minteo, poder poner precio en dolares o en ETH como hacemos a la hora de listar
+
 -- Introducir tipografias para los titulos
 
 -- Menu hamburguesa para resoluciones moviles o resoluciones muy pequeñas en desktop
-
--- Valorar poner fondo o un gradient quizas
 
 -- Revisar errores infinitos y escribir alguna frase en vez de ese error
 

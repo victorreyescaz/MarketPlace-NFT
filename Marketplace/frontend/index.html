@@ -6,7 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Marketplace NFT</title>
   </head>
+  <style>
+    .bg-img {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: -1;
+    }
+  </style>
   <body>
+    <img src="./public/ImagenesNFT/backgroundbtc.png" alt="Fondo" class="bg-img">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

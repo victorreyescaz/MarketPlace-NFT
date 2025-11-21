@@ -1,10 +1,12 @@
 /*
 Modal controlado para listar/actualizar precio de un NFT, captura un precio en ETH y ejecuta `onConfirm`(devuelto por el hook usePriceModal) deshabilitando botones mientras envía.
+
+Tambien hace la conversion bidireccional ETH-USD y ofrece la posibilidad de introducir el precio en una divisa u otra
  */
 
 import { useEffect, useState } from "react";
 import { Box, Button, Heading, HStack, Input, Text } from "@chakra-ui/react";
-import { useEthPrice } from "../../../hooks/useEthPrice";
+import { useEthUsdConversion } from "../../../hooks/useEthUsdConversion";
 
 export function PriceModal({
   isOpen,
@@ -16,36 +18,31 @@ export function PriceModal({
   onConfirm,
   
 }) {
-  const [priceEth, setPriceEth] = useState(defaultPriceEth ?? "");
-  const [priceDolar, setPriceDolar] = useState(defaultPriceDolar ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {priceUsd: usdPerEth, loading: priceLoading, error: priceError} = useEthPrice();
-
-  const [lastEdited, setLastEdited] = useState(null);
+  const {
+    priceEth,
+    priceUsd: priceDolar,
+    onChangeEth,
+    onChangeUsd,
+    usdPerEth,
+    priceLoading,
+    priceError,
+    reset: resetConversion,
+  } = useEthUsdConversion({
+    initialEth: defaultPriceEth ?? "",
+    initialUsd: defaultPriceDolar ?? "",
+  });
 
   useEffect(() => {
     if (isOpen) {
-      setPriceEth(defaultPriceEth ?? "");
-      setPriceDolar(defaultPriceDolar ?? "");
+      resetConversion({
+        eth: defaultPriceEth ?? "",
+        usd: defaultPriceDolar ?? "",
+      });
       setIsSubmitting(false);
-      setLastEdited(null);
     }
-  }, [defaultPriceEth, defaultPriceDolar, isOpen]);
-
-  // Effect de conversion bidireccional (ETH/USD)
-
-  useEffect(() => {
-    if (!usdPerEth) return;
-
-    if (lastEdited === "eth"){
-      const n = parseFloat(priceEth);
-      setPriceDolar(Number.isFinite(n) ? (n*usdPerEth).toFixed(2) : "");
-    } else if (lastEdited === "usd") {
-      const n = parseFloat(priceDolar);
-      setPriceEth(Number.isFinite(n) ? (n/usdPerEth).toFixed(4) : "");
-    }
-  }, [lastEdited, priceEth, priceDolar, usdPerEth]);
+  }, [defaultPriceDolar, defaultPriceEth, isOpen, resetConversion]);
 
 
   const handleConfirm = async () => {
@@ -97,8 +94,7 @@ export function PriceModal({
         <Input mb={"2"}
           value={priceEth}
           onChange={(e) => {
-            setPriceEth(e.target.value);
-            setLastEdited("eth");
+            onChangeEth(e.target.value);
           }}
           type="number"
           step="0.0001"
@@ -124,8 +120,7 @@ export function PriceModal({
         <Input mb={"2"}
           value={priceDolar}
           onChange={(e) => {
-            setPriceDolar(e.target.value);
-            setLastEdited("usd");
+            onChangeUsd(e.target.value);
           }}
           type="number"
           step="0.01"

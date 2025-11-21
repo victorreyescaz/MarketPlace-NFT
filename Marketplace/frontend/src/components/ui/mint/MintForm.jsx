@@ -1,9 +1,13 @@
 /*
 Formulario controlado para mintear un NFT, incluyendo nombre, descripción, archivo, toggle de auto-listado y precio opcional.
+
+Al querer Listar de forma automática se puede introducir el input del precio en ETH o en $ y ejecuta la conversión correspondiente
  */
 
+import { useEffect } from "react";
 import { Button, HStack, Input, Textarea, VStack, Switch, Text, Heading} from "@chakra-ui/react";
 import { DividerLine } from "../common/dividerLine";
+import { useEthUsdConversion } from "../../../hooks/useEthUsdConversion";
 
 
 export default function MintForm({
@@ -18,15 +22,32 @@ export default function MintForm({
     file,
     autoList,
     onToggleList,
-    priceEth,
+    priceEth: priceEthProp,
     onPriceChange,
+    defaultPriceDolar,
+    defaultPriceEth,
 
 }) {
 
-    const needsPrice = autoList && (!priceEth || Number(priceEth)<=0);
-    
+    const {
+        priceEth: convPriceEth,
+        priceUsd: priceDolar,
+        onChangeEth,
+        onChangeUsd,
+        } = useEthUsdConversion({
+        initialEth: priceEthProp ?? defaultPriceEth ?? "",
+        initialUsd: defaultPriceDolar ?? "",
+    });
+
+    useEffect(() => {
+        onPriceChange?.(convPriceEth);
+    }, [convPriceEth, onPriceChange]);
+
+    const needsPrice = autoList && (!convPriceEth || Number(convPriceEth)<=0);
+
+
     return(
-    
+        
         <>
         <DividerLine />
             <VStack align="stretch" spacing={3}>
@@ -64,22 +85,39 @@ export default function MintForm({
                 </HStack>
 
                 {autoList && (
-                    <VStack align="stretch" spacing={1}>
-                        <Input
-                        type="number"
-                        min="0"
-                        step="0.0001"
-                        placeholder="Precio en ETH"
-                        value={priceEth}
-                        onChange={(e) => onPriceChange(e.target.value)}
-                        disabled={busy}
-                        />
+                    <VStack align="stretch" spacing={2}>
+                        <HStack align="stretch" spacing={1}>
+                            <Input
+                            type="number"
+                            min="0"
+                            step="0.0001"
+                            placeholder="Precio en ETH"
+                            value={convPriceEth}
+                            onChange={(e) => onChangeEth(e.target.value)}
+                            disabled={busy}
+                            />
+                            <Text display={"flex"} alignItems={"center"} justifyContent={"center"} textAlign={"center"} mr={3}>ETH</Text>
+
+                            
+                            <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Precio en USD"
+                            value={priceDolar}
+                            onChange={(e) => onChangeUsd(e.target.value)}
+                            disabled={busy}
+                            />
+                            <Text display={"flex"} alignItems={"center"} justifyContent={"center"} textAlign={"center"}>$</Text>
+
+                        </HStack>
 
                         <Text fontSize="sm" color="gray.400">
                             Firmarás dos transacciones: mint y listar
                         </Text>
                     </VStack>
                 )}
+
 
                 <HStack>
                     <Input 
@@ -101,4 +139,3 @@ export default function MintForm({
         </>
     );
 };
-
