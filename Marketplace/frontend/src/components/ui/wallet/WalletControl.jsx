@@ -4,7 +4,7 @@ Barra de acciones ligada a la wallet: recarga Mis NFTs, maneja proceeds y reinic
 Se utiliza dentro del HeaderSection para agrupar todas las acciones relacionadas con la wallet del usuario.
  */
 
-import { Button, VStack, HStack } from "@chakra-ui/react";
+import { Button, VStack, Stack } from "@chakra-ui/react";
 
 const WalletControls = ({
   isConnected,
@@ -27,7 +27,13 @@ const WalletControls = ({
   onMintFormClick,
   showMyNFTs = false,
   showMint = false,
+  onAfterAction,
 }) => {
+
+  const withAfter = (fn) => async (...args) => {
+    await fn?.(...args);
+    onAfterAction?.();
+  };
 
   if (!isConnected) {
     return null;
@@ -35,10 +41,10 @@ const WalletControls = ({
 
   return (
     <VStack spacing={4} align="stretch">
-      <HStack justify="center" flexWrap="wrap" spacing={3} alignContent={"stretch"}>
+      <Stack direction={["column", "row"]} justify="center" flexWrap="wrap" spacing={3} alignContent={"stretch"}>
 
         <Button
-          onClick={onMintFormClick || (() => mintForm?.())}
+          onClick={withAfter(onMintFormClick || (() => mintForm?.()))}
           isLoading={loadingMint}
           colorPalette={"blue"}
           variant={showMint ? "solid" : "outline"}
@@ -46,7 +52,7 @@ const WalletControls = ({
           Mintear NFT
         </Button>
         <Button
-          onClick={onMyNFTButtonClick || (() => loadMyNFTs?.())}
+          onClick={withAfter(onMyNFTButtonClick || (() => loadMyNFTs?.()))}
           isLoading={loadingNFTs}
           colorPalette="purple"
           variant={showMyNFTs ? "solid" : "outline"}
@@ -55,17 +61,17 @@ const WalletControls = ({
         </Button>
 
         <Button
-          onClick={async () => {
+          onClick={withAfter(async () => {
             await refreshProceeds();
             showInfo("Saldo actualizado con éxito");
-          }}
+          })}
           variant="outline"
         >
           Actualizar saldo
         </Button>
 
         <Button
-          onClick={handleWithdraw}
+          onClick={withAfter(handleWithdraw)}
           isDisabled={withdrawLoading || Number(proceedsEth) <= 0}
           isLoading={withdrawLoading}
         >
@@ -75,17 +81,17 @@ const WalletControls = ({
         <Button
           colorPalette="orange"
           isDisabled={loadingGlobal}
-          onClick={() => {
+          onClick={withAfter(() =>{
             setQ("");
             setMinP("");
             setMaxP("");
             setSort("recent");
             loadAllListings(true);
-          }}
+          })}
         >
           Marketplace Global
         </Button>
-      </HStack>
+      </Stack>
     </VStack>
   );
 };

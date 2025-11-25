@@ -2,13 +2,9 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
--- Introducir tipografias para los titulos
-
--- Menu hamburguesa para resoluciones moviles o resoluciones muy pequeñas en desktop
+-- Dejar fondo BTC y poner otro en el contenido que se vean bien las letras
 
 -- Revisar errores infinitos y escribir alguna frase en vez de ese error
-
--- Dejar fondo BTC y poner otro en el contenido que se vean bien las letras
 
 --- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2
 

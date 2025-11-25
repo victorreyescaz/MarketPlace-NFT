@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^3.29.0",
     "@chakra-ui/theme-tools": "^2.2.6",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/permanent-marker": "^5.2.7",
     "@reown/appkit": "^1.8.13",
     "@reown/appkit-adapter-ethers": "^1.8.13",
     "ethers": "^6.15.0",
