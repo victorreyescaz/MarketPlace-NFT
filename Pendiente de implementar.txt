@@ -2,13 +2,13 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
--- Formulario de Minteo, poder poner precio en dolares o en ETH como hacemos a la hora de listar
-
 -- Introducir tipografias para los titulos
 
 -- Menu hamburguesa para resoluciones moviles o resoluciones muy pequeñas en desktop
 
 -- Revisar errores infinitos y escribir alguna frase en vez de ese error
+
+-- Dejar fondo BTC y poner otro en el contenido que se vean bien las letras
 
 --- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2
 
@@ -43,8 +43,6 @@ ________________________________________________________________________________
 -- Cambiar todos los alert por showInfo, queda mas bonito
 
 -- Igual que hemos hecho en el marketplace, el tooltip para ver en tiempo real la conversion entre ETH y USD, hacerlo al listar un NFT, tanto en listar cuando esta minteado como cuando queremos mintearlo y listarlo a la vez
-
--- Boton ocultar en Marketplace Global??
 
 -- Introducir spinners en momentos de carga que vea necesario
 
