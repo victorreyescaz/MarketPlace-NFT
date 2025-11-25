@@ -35,13 +35,13 @@ export function HeaderSection({ title = "NFT Marketplace by Víctor", walletProp
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   return (
-    <VStack spacing={6} align="stretch" p={2}>
-      <HStack justify="space-between" align="center" flexWrap="wrap" spacing={4}>
+    <VStack spacing={6} align="stretch" p={2} className="Heading">
+      <HStack justify="space-between" align="center" flexWrap="wrap" spacing={4} >
         <Heading
           textAlign="left"
-          fontSize={25}
+          fontSize={38}
           fontFamily="Permanent Marker, cursive"
-          color={"blue.200"}
+          color={"orange.500"}
           fontWeight={"400"}
           p={5}
         >

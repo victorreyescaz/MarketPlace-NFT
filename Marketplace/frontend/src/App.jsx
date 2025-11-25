@@ -237,7 +237,7 @@ function App() {
   /* ========================== Render =================================*/ 
 
 return (
-  <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto">
+  <VStack spacing={6} p={10} align="stretch" maxW="1000px" mx="auto" className="utilBody">
 
     <Box position="sticky" top={0} zIndex={10} p={3}>
     <HeaderSection walletProps={walletProps} />

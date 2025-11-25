@@ -2,7 +2,7 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
--- Dejar fondo BTC y poner otro en el contenido que se vean bien las letras
+-- Completar footer
 
 -- Revisar errores infinitos y escribir alguna frase en vez de ese error
 
