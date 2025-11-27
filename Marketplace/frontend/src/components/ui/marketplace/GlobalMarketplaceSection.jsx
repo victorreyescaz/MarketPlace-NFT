@@ -49,7 +49,12 @@ export function GlobalMarketplaceSection({
   return (
     <VStack align="stretch" spacing={6}>
       <DividerLine />
-      <Heading size="lg">{title}</Heading>
+      <Heading size="lg"
+      fontFamily="Permanent Marker, cursive"
+      fontSize={30}
+      >
+        {title}
+      </Heading>
 
       <MarketplaceControls
         q={q}

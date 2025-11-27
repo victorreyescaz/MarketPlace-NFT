@@ -110,7 +110,7 @@ export function GlobalListings({
       )}
 
       {allListings.length > 0 && globalCursor?.done && (
-        <Text mt="4" textAlign="center" color="gray.400">
+        <Text mt="4" textAlign="center" color="gray.400" fontWeight={"bold"}>
           Has llegado al inicio del deploy. No hay más listados antiguos.
         </Text>
       )}

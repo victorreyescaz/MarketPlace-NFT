@@ -108,16 +108,18 @@ export function useGlobalListings({
           scan: reset,
         });
 
-        if (Array.isArray(res?.listings)) {
-          mergeBatchIntoState(res.listings, { reset });
+        const listings = Array.isArray(res?.listings) ? res.listings : [];
+        if (listings.length) {
+          mergeBatchIntoState(listings, { reset });
         }
 
-        if (res?.cursor) {
-          setGlobalCursor({
-            nextTo: Number(res.cursor.nextTo ?? 0),
-            done: Boolean(res.cursor.done),
-          });
-        }
+        const cursorDone =
+          Boolean(res?.cursor?.done) || (!reset && listings.length === 0);
+
+        setGlobalCursor({
+          nextTo: Number(res?.cursor?.nextTo ?? nextTo ?? 0),
+          done: cursorDone,
+        });
       } catch (err) {
         showError?.(err, "No se pudo cargar el Marketplace Global");
         throw err;
@@ -254,6 +256,10 @@ export function useGlobalListings({
           if (!done && collected < target && pages < GLOBAL_MAX_PAGES) {
             await sleep(PAGE_DELAY_MS);
           }
+        }
+
+        if (!reset && collected === 0) {
+          done = true;
         }
 
         setAllListings(Array.from(map.values()).sort(sortListings));

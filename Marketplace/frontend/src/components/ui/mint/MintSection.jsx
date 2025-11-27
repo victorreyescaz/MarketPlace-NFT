@@ -10,6 +10,25 @@ import React from "react";
 import MintForm from "./MintForm";
 import { useMinting } from "../../../hooks/useMinting";
 
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/avif",
+  "image/svg+xml",
+]);
+
+const ALLOWED_IMAGE_EXTS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "avif",
+  "svg",
+]);
+
 export function MintSection({
   walletProvider,
   isConnected,
@@ -28,7 +47,25 @@ export function MintSection({
   const [autoList, setAutoList] = React.useState(false);
   const [priceEth, setPriceEth] = React.useState("");
 
-  const onPickFile = (selectedFile) => setFile(selectedFile || null);
+  const onPickFile = (selectedFile, inputEl) => {
+    if (!selectedFile) return setFile(null);
+
+    const typeOk =
+      selectedFile.type?.startsWith("image/") ||
+      ALLOWED_IMAGE_TYPES.has(selectedFile.type);
+    const ext = selectedFile.name.split(".").pop()?.toLowerCase();
+    const extOk = ext ? ALLOWED_IMAGE_EXTS.has(ext) : false;
+
+    if (!typeOk && !extOk) {
+      showError?.(
+        "Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, SVG, AVIF)."
+      );
+      if (inputEl) inputEl.value = "";
+      return setFile(null);
+    }
+
+    setFile(selectedFile);
+  };
 
   const { handleMint } = useMinting({
     walletProvider,

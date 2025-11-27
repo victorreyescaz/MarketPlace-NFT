@@ -39,7 +39,7 @@ export function HeaderSection({ title = "NFT Marketplace by Víctor", walletProp
       <HStack justify="space-between" align="center" flexWrap="wrap" spacing={4} >
         <Heading
           textAlign="left"
-          fontSize={38}
+          fontSize={45}
           fontFamily="Permanent Marker, cursive"
           color={"orange.500"}
           fontWeight={"400"}

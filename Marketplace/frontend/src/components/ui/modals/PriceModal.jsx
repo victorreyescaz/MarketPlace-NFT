@@ -12,13 +12,16 @@ export function PriceModal({
   isOpen,
   mode,
   name,
+  defaultPrice,
   defaultPriceEth,
   defaultPriceDolar,
   onClose,
   onConfirm,
-  
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const ethDefault = defaultPrice ?? defaultPriceEth ?? "";
+  const usdDefault = defaultPriceDolar ?? "";
 
   const {
     priceEth,
@@ -30,31 +33,45 @@ export function PriceModal({
     priceError,
     reset: resetConversion,
   } = useEthUsdConversion({
-    initialEth: defaultPriceEth ?? "",
-    initialUsd: defaultPriceDolar ?? "",
+    initialEth: ethDefault,
+    initialUsd: usdDefault,
   });
 
   useEffect(() => {
     if (isOpen) {
       resetConversion({
-        eth: defaultPriceEth ?? "",
-        usd: defaultPriceDolar ?? "",
+        eth: ethDefault,
+        usd: usdDefault,
       });
       setIsSubmitting(false);
     }
-  }, [defaultPriceDolar, defaultPriceEth, isOpen, resetConversion]);
+  }, [defaultPrice, defaultPriceDolar, defaultPriceEth, ethDefault, isOpen, resetConversion, usdDefault]);
 
 
   const handleConfirm = async () => {
     if (isSubmitting || priceLoading) return;
     setIsSubmitting(true);
-    try{
-      await onConfirm?.({ 
-        eth: Number(priceEth),
-      });
-    } finally{
+
+    const normalizedPrice = String(priceEth ?? "").replace(",", ".").trim();
+
+    const priceNumber = Number(normalizedPrice);
+
+    if (!normalizedPrice || Number.isNaN(priceNumber) || priceNumber <= 0) {
+      alert("Introduce un precio válido");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await onConfirm?.(normalizedPrice);
+    } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleClose = async () => {
+    if (isSubmitting || priceLoading) return;
+    onClose?.()
   };
 
   if (!isOpen) return null;
@@ -131,7 +148,11 @@ export function PriceModal({
         />
 
         <HStack mt="4" justify="flex-end">
-          <Button variant="ghost" onClick={onClose}>
+          <Button 
+          variant="ghost" 
+          onClick={handleClose}
+          isDisabled={isSubmitting || priceLoading}
+          >
             Cancelar
           </Button>
           <Button
@@ -140,7 +161,7 @@ export function PriceModal({
             isDisabled={isSubmitting || priceLoading}
             onClick={handleConfirm}
           >
-            Confirmar
+            {isSubmitting ? "Procesando..." : "Confirmar"}
           </Button>
         </HStack>
       </Box>

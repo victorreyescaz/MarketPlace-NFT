@@ -10,7 +10,11 @@ export function LoadingSkeletons() {
   return (
     <>
       <DividerLine />
-      <Heading size="lg">Mis NFTs</Heading>
+      <Heading size="lg"
+      fontFamily="Permanent Marker, cursive"
+      >
+        Mis NFTs
+      </Heading>
       <SimpleGrid columns={[1, 2, 3, 4]} spacing={5}>
         {Array.from({ length: 6 }).map((_, i) => (
           <Box key={`mynft-skel-${i}`} borderWidth="1px" borderRadius="lg" overflow="hidden" p="3">
@@ -32,7 +36,11 @@ export function EmptyState() {
   return (
     <>
       <DividerLine />
-      <Heading size="lg">Mis NFTs</Heading>
+      <Heading size="lg"
+      fontFamily="Permanent Marker, cursive"
+      fontSize={30}
+      >Mis NFTs
+      </Heading>
       <Box p="6" borderWidth="1px" borderRadius="md" bg="blackAlpha.200">
         <Text>No tienes NFTs (o no en esta red).</Text>
       </Box>
@@ -71,7 +79,12 @@ export function MyNFTSection({
     <>
       <DividerLine />
       <HStack justify={"space-between"}>
-      <Heading size="lg">Mis NFTs</Heading>
+      <Heading size="lg"
+      fontFamily="Permanent Marker, cursive"
+      fontSize={30}
+      >
+        Mis NFTs
+        </Heading>
       </HStack>
       <SimpleGrid columns={[1, 2, 3, 4]} spacing={5} gap={2}>
         {myNFTs.map((nft) => {

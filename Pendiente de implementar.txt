@@ -2,7 +2,6 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
-
 -- Revisar errores infinitos y escribir alguna frase en vez de ese error
 
 -- Documentacion
@@ -18,7 +17,7 @@ ________________________________________________________________________________
 -- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
 Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.Implementarla en el frontend para poder quemar tokens
 
---- Poder mintear mas de un NFT a la vez, una coleccion. Crear una fucion multi-mining en el marketplace.sol
+--- Poder mintear mas de un NFT a la vez, una coleccion. Crear una funcion multi-mining en el marketplace.sol
 
 -- Implementar funcion approve de contrato solidity para dar permisos a un tercero para gestionar los NFTs
 ______________________________________________________________________________________________________________________________
@@ -26,22 +25,11 @@ ________________________________________________________________________________
 
 -- Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
 
--- Badges de estado en las cards
-“Listado”, “No listado”, “Tuyo” (ya muestras “Tu NFT”, pero puedes añadir un Badge en la card).
-
--- Toasts agradables (si migras banners a useToast de Chakra)
-
 -- Memoriza tokenURI → metadata en un Map (o localStorage) para evitar refetch en cada apertura.
 
 -- Histórico de actividad (on-chain)
 
--- Toggle entre “Mis NFTs” y “Marketplace Global” (estado view), ocultando la otra sección.
-
 -- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
-
--- Cambiar todos los alert por showInfo, queda mas bonito
-
--- Igual que hemos hecho en el marketplace, el tooltip para ver en tiempo real la conversion entre ETH y USD, hacerlo al listar un NFT, tanto en listar cuando esta minteado como cuando queremos mintearlo y listarlo a la vez
 
 -- Introducir spinners en momentos de carga que vea necesario
 
@@ -50,3 +38,5 @@ ________________________________________________________________________________
 -- Posibilidad de comprar varios NFT a la vez, poder seleccionar varios y luego comprarlos
 
 -- Hacer rutas
+
+-- Posibilidad de listar varios NFTs a la vez, poder poner precios diferentes a cada uno

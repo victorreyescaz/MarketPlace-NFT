@@ -34,6 +34,11 @@ export function useMinting({
       return open({ view: "Connect", namespace: "eip155" });
     }
 
+    const normalizedPriceEth = priceEth
+      ? String(priceEth).replace(",", ".").trim()
+      : "";
+    const parsedPriceEth = Number(normalizedPriceEth);
+
     if (!(await ensureSupportedChain(walletProvider))) {
       return showError?.("Cambia a Sepolia para mintear en NFT");
     }
@@ -42,8 +47,8 @@ export function useMinting({
 
     if (!file || !name) return showError?.("Falta imagen y/o nombre");
 
-    if (autoList && (!priceEth || Number(priceEth) <= 0)) {
-      return showError?.("Necesitas un precio para listar automáticamente");
+    if (autoList && (!normalizedPriceEth || Number.isNaN(parsedPriceEth) || parsedPriceEth <= 0)) {
+      return showError?.("Necesitas un precio válido para listar automáticamente");
     }
 
     let autoListFailed = false;
@@ -75,7 +80,7 @@ export function useMinting({
       if (autoList) {
         try {
           showInfo?.("Preparando listado...");
-          await listToken(tokenId, priceEth);
+          await listToken(tokenId, normalizedPriceEth);
           showInfo?.("✅ NFT minteado y listado con éxito");
         } catch (err) {
           autoListFailed = true;

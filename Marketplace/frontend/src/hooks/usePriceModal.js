@@ -55,15 +55,39 @@ export function usePriceModal(
   }, []);
 
   const confirm = useCallback(
-    async (priceStr) => {
-      if (!priceStr || Number(priceStr) <= 0) {
-        alert("Introduce un precio > 0");
+    async (priceInput) => {
+      const rawPrice =
+        priceInput && typeof priceInput === "object"
+          ? priceInput.eth ?? priceInput.price ?? priceInput.value
+          : priceInput;
+
+      const normalizedPrice = String(rawPrice ?? "")
+        .replace(",", ".")
+        .trim();
+      const numericPrice = Number(normalizedPrice);
+
+      if (!normalizedPrice || Number.isNaN(numericPrice) || numericPrice <= 0) {
+        alert("Introduce un precio válido > 0");
         return;
       }
 
       const { mode, tokenId } = modalState;
       if (tokenId === null || tokenId === undefined) {
         alert("Selecciona un NFT válido");
+        return;
+      }
+
+      const currentPrice = String(modalState.defaultPrice ?? "")
+        .replace(",", ".")
+        .trim();
+      const currentPriceNumber = Number(currentPrice);
+      if (
+        mode === "update" &&
+        currentPrice &&
+        !Number.isNaN(currentPriceNumber) &&
+        numericPrice === currentPriceNumber
+      ) {
+        alert("Introduce un precio diferente al actual");
         return;
       }
 
@@ -77,14 +101,14 @@ export function usePriceModal(
             alert("Este NFT ya está listado");
             return;
           }
-          await listToken(tokenId, priceStr);
+          await listToken(tokenId, normalizedPrice);
         } else {
-          await updateListing(tokenId, priceStr);
+          await updateListing(tokenId, normalizedPrice);
         }
         close();
       } catch (e) {
         console.error(e);
-        alert(e?.message || "Error al confirmar precio");
+        alert("Error al confirmar precio");
       } finally {
         setLoading(key, false);
       }

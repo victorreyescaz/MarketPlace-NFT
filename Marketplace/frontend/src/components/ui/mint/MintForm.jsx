@@ -44,6 +44,11 @@ export default function MintForm({
     }, [convPriceEth, onPriceChange]);
 
     const needsPrice = autoList && (!convPriceEth || Number(convPriceEth)<=0);
+    
+    const handleFileChange = (event) => {
+        const fileSelected = event.target.files?.[0] || null;
+        onFileChange?.(fileSelected, event.target);
+    };
 
 
     return(
@@ -51,7 +56,10 @@ export default function MintForm({
         <>
         <DividerLine />
             <VStack align="stretch" spacing={3}>
-                <Heading size={"lg"}>Formulario de Minteo</Heading>
+                <Heading size={"lg"}
+                fontFamily="Permanent Marker, cursive"
+                fontSize={20}
+                >Formulario de Minteo</Heading>
 
                 <Input
                 placeholder="Nombre del NFT" 
@@ -123,7 +131,7 @@ export default function MintForm({
                     <Input 
                     type="file" 
                     accept="image/*" 
-                    onChange={(e) => onFileChange(e.target.files?.[0] || null)} 
+                    onChange={handleFileChange} 
                     />
                 </HStack>
 

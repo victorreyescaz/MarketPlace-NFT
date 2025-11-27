@@ -136,6 +136,7 @@ function App() {
     marketplaceActionsHook;
 
   const withdrawLockKey = "wallet:withdraw";
+  
   const handleWithdraw = useCallback((evt) => runWithLock(withdrawLockKey, evt, withdrawProceeds),
   [runWithLock, withdrawProceeds]
   );
@@ -244,7 +245,6 @@ return (
     </Box>
 
     {/* Formulario de minteo*/}
-    
     {showMint && (
     <MintSection
       walletProvider={walletProvider}
@@ -260,7 +260,6 @@ return (
     )}
 
     {/* Carga galería (Mis NFTs)*/}
-
     {showMyNFTs && (
       <MyNFTSection
       loadingNFTs={loadingNFTs}
@@ -281,6 +280,7 @@ return (
       />
     )}
 
+    {/* Carga Marketplace */}
     <GlobalMarketplaceSection
       filters={marketplaceFilters}
       listings={marketplaceListings}
@@ -290,8 +290,7 @@ return (
 
     />
 
-{/* === Modal de precio inline para listar o actualizar precio NFT  === */}
-
+    {/* === Modal de precio inline para listar o actualizar precio NFT  === */}
     <PriceModal
       isOpen={priceModal?.isOpen}
       mode={priceModal?.mode}
