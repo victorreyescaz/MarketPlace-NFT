@@ -34,7 +34,7 @@ const MARKET_DEPLOY_BLOCK = Number(
   import.meta.env.VITE_MARKET_DEPLOY_BLOCK || 0
 );
 const GLOBAL_BATCH_TARGET = Number(
-  import.meta.env.VITE_GLOBAL_BATCH_TARGET || 10
+  import.meta.env.VITE_GLOBAL_BATCH_TARGET || 12
 );
 const GLOBAL_MAX_PAGES = Number(import.meta.env.VITE_GLOBAL_MAX_PAGES || 6);
 const BLOCK_PAGE = Number(import.meta.env.VITE_BLOCK_PAGE || 80);
