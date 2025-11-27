@@ -2,9 +2,12 @@ _______________________________________________________________
 DESARROLLANDO
 _______________________________________________________________
 
--- Completar footer
 
 -- Revisar errores infinitos y escribir alguna frase en vez de ese error
+
+-- Documentacion
+
+-- Introducir el github en el footer
 
 --- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2
 
@@ -45,3 +48,5 @@ ________________________________________________________________________________
 -- Emitir royalties o rewards al mintear, comprar, lo que se me ocurra
 
 -- Posibilidad de comprar varios NFT a la vez, poder seleccionar varios y luego comprarlos
+
+-- Hacer rutas
