@@ -13,9 +13,9 @@ export function StatusBannerProvider({ children }) {
   const [uiInfo, setUiInfo] = useState(null); // string | null
 
   const showError = (eOrMsg, fallback) => {
-    const msg =
-      typeof eOrMsg === "string" ? eOrMsg : eOrMsg?.message || fallback;
-    console.error("[UI Error]", msg, eOrMsg);
+    const msg = fallback ||
+      (typeof eOrMsg === "string" ? eOrMsg : eOrMsg?.message || "Ocurrió un error");
+    console.error("[UI Error]",eOrMsg);
     setUiError(msg);
   };
 
