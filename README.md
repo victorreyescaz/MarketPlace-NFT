@@ -19,16 +19,16 @@ Aquí tienes una Demo en producción (Vercel) para poder interactuar con el Mark
 
 ## 🧱 Arquitectura del proyecto
 
-Marketplace/
-backend/ # Contratos, endpoints, scripts de deploy.
-frontend/ # App web (Vite/React/ + Web3).
+- Marketplace/
+- backend/ # Contratos, endpoints, scripts de deploy.
+- frontend/ # App web (Vite/React/ + Web3).
 
 ## 👉 Stack principal
 
-**Smart contracts** Solidity, Hardhat, OpenZeppelin.
-**Backend tooling** Node.js, scripts de deploy.
-**Frontend** React/Ethers.js, Chakra, Appkit
-**Blockchain** ETH Sepolia
+- **Smart contracts** Solidity, Hardhat, OpenZeppelin.
+- **Backend tooling** Node.js, scripts de deploy.
+- **Frontend** React/Ethers.js, Chakra, Appkit
+- **Blockchain** ETH Sepolia
 
 ## 🧾 Smart Contracts (backend)
 
@@ -67,25 +67,26 @@ Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wa
 ## 🚀 Cómo arrancar rápido (en local)
 
 1. Clonar el repositorio
-   git clone https://github.com/victorreyescaz/MarketPlace-NFT.git
-   cd Marketplace
+
+   - git clone https://github.com/victorreyescaz/MarketPlace-NFT.git
+   - cd Marketplace
 
 2. Backend
-   cd backend
-   npm install
-   nvm use
-   copiar plantilla env.example a .env
-   introducir las variables de entorno necesarias
-   npm run dev (se ejecutará el server)
+   - cd backend
+   - npm install
+   - nvm use
+   - copiar plantilla env.example a .env
+   - introducir las variables de entorno necesarias
+   - npm run dev (se ejecutará el server)
 
 ➡️ Más detalles técnicos en backend/README.md
 
 3. Frontend
-   cd frontend
-   npm install
-   nvm use
-   npm run dev
-   Abre tu navegador en http://localhost:5173
+   - cd frontend
+   - npm install
+   - nvm use
+   - npm run dev
+   - Abre tu navegador en http://localhost:5173
 
 ## 🔒 Diseño de seguridad
 
@@ -126,4 +127,4 @@ Rol: Desarrollador Blockchain / Full Stack Web3
 
 LinkedIn: https://www.linkedin.com/in/v%C3%ADctor-reyes-cazorla-75361b10b/
 
-Email (opcional): victorreyes.caz@gmail.com
+Email: victorreyes.caz@gmail.com
