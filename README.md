@@ -42,7 +42,7 @@ Aquí tienes una Demo en producción (Vercel) para poder interactuar con el Mark
     - ERC-721 (NFT) con funciones de mint.
     - Control de permisos de minteo (solo owner/marketplace).
 
-➡️ Más detalles técnicos en backend/README.md
+➡️ Más detalles técnicos en [backend Readme](backend/README.md)
 
 ## 🖥 Frontend (dApp)
 
@@ -79,7 +79,7 @@ Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wa
    - introducir las variables de entorno necesarias
    - npm run dev (se ejecutará el server)
 
-➡️ Más detalles técnicos en backend/README.md
+➡️ Más detalles técnicos en [backend Frontend](backend/README.md)
 
 3. Frontend
    - cd frontend
@@ -125,6 +125,6 @@ Nombre: Víctor Reyes
 
 Rol: Desarrollador Blockchain / Full Stack Web3
 
-LinkedIn: https://www.linkedin.com/in/v%C3%ADctor-reyes-cazorla-75361b10b/
+LinkedIn: [Linkedin](https://www.linkedin.com/in/v%C3%ADctor-reyes-cazorla-75361b10b/)
 
 Email: victorreyes.caz@gmail.com
