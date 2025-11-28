@@ -62,7 +62,7 @@ Vistas:
 
 Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wallet.
 
-➡️ Más detalles técnicos en frontend/README.md
+➡️ Más detalles técnicos en [frontend Readme](frontend/README.md)
 
 ## 🚀 Cómo arrancar rápido (en local)
 
@@ -79,7 +79,7 @@ Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wa
    - introducir las variables de entorno necesarias
    - npm run dev (se ejecutará el server)
 
-➡️ Más detalles técnicos en [backend Frontend](backend/README.md)
+➡️ Más detalles técnicos en [Frontend Readme](backend/README.md)
 
 3. Frontend
    - cd frontend
