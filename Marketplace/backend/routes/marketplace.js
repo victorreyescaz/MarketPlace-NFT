@@ -1,3 +1,8 @@
+/*
+Endpoint para generar un feed paginado y limpio de todos los NFTs listados en el marketplace combinando datos on-chain y metadata IPFS, listo para que el frontend lo muestre
+*/
+
+
 import express from "express";
 import fetch from "node-fetch";
 import { JsonRpcProvider, Contract, formatEther } from "ethers";

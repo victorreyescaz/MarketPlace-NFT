@@ -28,8 +28,8 @@ export function FooterSection() {
 
         <Stack spacing={8} fontSize="sm" p={2}>
           <Text fontWeight="semibold">Recursos</Text>
-          <Link href="https://docs.alchemy.com/reference" isExternal color="blue.200">
-            Documentación en Github
+          <Link href="https://github.com/victorreyescaz/MarketPlace-NFT" isExternal color="blue.200">
+            Repositorio Github
           </Link>
           <Link href="https://sepolia.etherscan.io/" isExternal color="blue.200">
             Etherscan Sepolia
