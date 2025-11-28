@@ -5,7 +5,7 @@ El objetivo del proyecto es demostrar **skills de Solidity + Hardhat + Frontend 
 
 Aquí tienes una Demo en producción (Vercel) para poder interactuar con el Marketplace sin instalar nada:
 
-    👉
+    👉 [Demo Marketplace Vercel]()
 
 ## ✨ Funcionalidades principales
 
@@ -79,7 +79,7 @@ Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wa
    - introducir las variables de entorno necesarias
    - npm run dev (se ejecutará el server)
 
-➡️ Más detalles técnicos en [frontend Readme](/Marketplace/frontend/README.md)
+➡️ Más detalles técnicos en [backend Readme](/Marketplace/backend/README.md)
 
 3. Frontend
    - cd frontend
