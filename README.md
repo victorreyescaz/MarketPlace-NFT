@@ -3,9 +3,11 @@
 dApp full-stack para **mintear, listar y comprar NFTs** en la testnet de Sepolia.  
 El objetivo del proyecto es demostrar **skills de Solidity + Hardhat + Frontend Web3** en un caso de uso real.
 
-Aquí tienes una Demo en producción (Vercel) para poder interactuar con el Marketplace sin instalar nada:
+Aquí te dejo una demo en producción (Vercel) para poder interactuar con el Marketplace sin instalar nada
 
-    👉 [Demo Marketplace Vercel]()
+[Marketplace]()
+
+---
 
 ## ✨ Funcionalidades principales
 
@@ -17,11 +19,17 @@ Aquí tienes una Demo en producción (Vercel) para poder interactuar con el Mark
 - 🫰 **Retiro de ganancias** para vendedores (withdraw).
 - 🔐 Verificación básica de seguridad: CEI, reentrancy guard, validaciones de inputs.
 
+---
+
 ## 🧱 Arquitectura del proyecto
 
-- Marketplace/
-- backend/ # Contratos, endpoints, scripts de deploy.
-- frontend/ # App web (Vite/React/ + Web3).
+```
+Marketplace/          # paquete raíz
+  backend/            # Contratos, endpoints, scripts de deploy
+  frontend/           # App web (Vite/React + Web3)
+```
+
+---
 
 ## 👉 Stack principal
 
@@ -30,80 +38,104 @@ Aquí tienes una Demo en producción (Vercel) para poder interactuar con el Mark
 - **Frontend** React/Ethers.js, Chakra, Appkit
 - **Blockchain** ETH Sepolia
 
+---
+
 ## 🧾 Smart Contracts (backend)
 
-· Marketplace.sol
+- Marketplace.sol
 
-    - Crear órdenes de venta, update precio, compra y cancelación.
-    - Función de withdraw para retirar ganancias.
+  ·Crear órdenes de venta, update precio, compra y cancelación.
+  ·Función de withdraw para retirar ganancias.
+  <br>
 
-· NFT.sol
+- NFT.sol
 
-    - ERC-721 (NFT) con funciones de mint.
-    - Control de permisos de minteo (solo owner/marketplace).
+  · ERC-721 (NFT) con funciones de mint.
+  · Control de permisos de minteo (solo owner/marketplace).
 
-➡️ Más detalles técnicos en [backend Readme](./Marketplace/backend/README.md)
+➡️ Más detalles técnicos en [backend Readme](Marketplace/backend/README.md)
 
-## 🖥 Frontend (dApp)
+---
+
+## 🖥️ Frontend (dApp)
 
 Conexión de wallet (ej. MetaMask).
 
 Vistas:
 
-· Panel de usuario:
+- Panel de usuario:
 
-    - Formulario mint NFT con posibilidad de listarlo (conversión ETH <-> $ tiempo real)
+  · Formulario mint NFT con posibilidad de listarlo (conversión ETH <-> $ tiempo real)
 
-    - Sección MisNFTs donde consulta NFTs usuario y da opciones de listar, cambiar precio y cancelar listado según estado del NFT.
+  · Sección MisNFTs donde consulta NFTs usuario y da opciones de listar, cambiar precio y cancelar listado según estado del NFT.
 
-    - Actualizar proceeds y retirada a wallet.
+  · Actualizar proceeds y retirada a wallet.
 
-    - Marketplace Global con listado de NFTs en venta con filtros.
+  · Marketplace Global con listado de NFTs en venta con filtros.
 
-Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wallet.
+- Posibilidad de navegar por el Marketplace y ver NFTs listados sin conectar wallet.
 
-➡️ Más detalles técnicos en [frontend Readme](/Marketplace/frontend/README.md)
+➡️ Más detalles técnicos en [frontend Readme](Marketplace/frontend/README.md)
+
+---
 
 ## 🚀 Cómo arrancar rápido (en local)
 
 1. Clonar el repositorio
 
-   - git clone https://github.com/victorreyescaz/MarketPlace-NFT.git
-   - cd Marketplace
+```bash
+    git clone https://github.com/victorreyescaz/MarketPlace-NFT.git
+    cd MarketPlace-NFT
+```
 
 2. Backend
-   - cd backend
-   - npm install
-   - nvm use
-   - copiar plantilla env.example a .env
-   - introducir las variables de entorno necesarias
-   - npm run dev (se ejecutará el server)
 
-➡️ Más detalles técnicos en [backend Readme](/Marketplace/backend/README.md)
+```bash
+   cd Marketplace/backend
+   nvm use
+   npm install
+```
+
+- Copiar plantilla env.example a .env
+- Introducir las variables de entorno necesarias
+
+```bash
+   npm run dev
+```
+
+➡️ Más detalles técnicos en [backend Readme](Marketplace/backend/README.md)
 
 3. Frontend
-   - cd frontend
-   - npm install
-   - nvm use
-   - npm run dev
-   - Abre tu navegador en http://localhost:5173
+
+```bash
+   cd Marketplace/frontend
+   nvm use
+   npm install
+   npm run dev
+```
+
+- Abre tu navegador en http://localhost:5173
+
+---
 
 ## 🔒 Diseño de seguridad
 
-· Uso del patrón Checks-Effects-Interactions (CEI).
-· Protección ante reentrancy en funciones sensibles (compra, withdraw).
+- Uso del patrón Checks-Effects-Interactions (CEI).
+- Protección ante reentrancy en funciones sensibles (compra, withdraw).
 
-· Validaciones de:
+- Validaciones de:
 
-    - Precios (no 0).
+  · Precios (no 0).
 
-    - Propietario del NFT antes de listar.
+  · Propietario del NFT antes de listar.
 
-    - Existencia del listing antes de comprar/cancelar.
+  · Existencia del listing antes de comprar/cancelar.
 
-    - Control conexion con Sepolia.
+  · Control conexion con Sepolia.
 
-· Uso de eventos para compras, listados y retiros.
+- Uso de eventos para compras, listados y retiros.
+
+---
 
 ## 🗺️ Roadmap / Mejoras futuras
 
@@ -119,12 +151,14 @@ Posibilidad de navegar por el Marketplace para ver NFTs listados sin conectar wa
 
 - Optimización de RPC.
 
+---
+
 ## 👤 Autor
 
 Nombre: Víctor Reyes
 
 Rol: Desarrollador Blockchain / Full Stack Web3
 
-LinkedIn: [Linkedin](https://www.linkedin.com/in/v%C3%ADctor-reyes-cazorla-75361b10b/)
+[Linkedin](https://www.linkedin.com/in/v%C3%ADctor-reyes-cazorla-75361b10b/)
 
 Email: victorreyes.caz@gmail.com

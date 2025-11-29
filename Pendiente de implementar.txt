@@ -1,0 +1,38 @@
+_______________________________________________________________
+DESARROLLANDO
+_______________________________________________________________
+
+-- Documentacion
+
+--- Para poner el produccion necesitamos vercel para el frontend y Render/Railway o un VPS con Node/pm2
+
+______________________________________________________________________________________________________________________________
+CAMBIOS EN CONTRATOS SOLIDITY
+______________________________________________________________________________________________________________________________
+
+-- Cambiar la funcion buyItem en Marketplace.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. CAMBIAR CLAVE PRIVADA CUENTA POR OTRA CUENTA DE PRUEBAS, CUENTA 3 hackeada, la cuenta 4 la oculto tambien por si acaso
+Implementar funcion _burn del NFT.sol, recordar volver a desplegar el contrato y cambiar la direccion del contrato donde proceda. Esta comentada en el contrato.Implementarla en el frontend para poder quemar tokens
+
+--- Poder mintear mas de un NFT a la vez, una coleccion. Crear una funcion multi-mining en el marketplace.sol
+
+-- Implementar funcion approve de contrato solidity para dar permisos a un tercero para gestionar los NFTs
+______________________________________________________________________________________________________________________________
+______________________________________________________________________________________________________________________________
+
+-- Optimización de RPC: cachear las respuestas de tokenURI + metadata para no pedirlas siempre.
+
+-- Memoriza tokenURI → metadata en un Map (o localStorage) para evitar refetch en cada apertura.
+
+-- Histórico de actividad (on-chain)
+
+-- Placeholder icons del metadata del main.jsx, mirar cambiarlo a un logo real accesible por https
+
+-- Introducir spinners en momentos de carga que vea necesario
+
+-- Emitir royalties o rewards al mintear, comprar, lo que se me ocurra
+
+-- Posibilidad de comprar varios NFT a la vez, poder seleccionar varios y luego comprarlos
+
+-- Hacer rutas
+
+-- Posibilidad de listar varios NFTs a la vez, poder poner precios diferentes a cada uno

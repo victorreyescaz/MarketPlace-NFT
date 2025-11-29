@@ -6,13 +6,13 @@ async function main() {
 
   console.log("🚀 Deploying contract with account:", deployer.address);
 
-  // Factory es un objeto de JS que representa la receta("plantilla") de despliegue dell contrato, incluye ABI, bytecode y Signer
+  // Factory es un objeto de JS que representa la receta("plantilla") de despliegue del contrato, incluye ABI, bytecode y Signer
   const NFT = await ethers.getContractFactory("NFT");
 
   // Pasa el deployer.address al contstructor de NFT.sol
   const nft = await NFT.deploy(deployer.address);
 
-  // Espera a que la tx de deploy sea minada y el contrato quede listo on-chain.Necesario waitForDeployment() en versiones nuevas de Hardhat
+  // Espera a que la tx de deploy sea minada y el contrato quede listo on-chain. Necesario waitForDeployment() en versiones nuevas de Hardhat
   await nft.waitForDeployment();
 
   console.log("✅ Contract deployed at:", await nft.getAddress());
