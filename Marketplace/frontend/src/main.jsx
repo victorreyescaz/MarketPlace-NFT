@@ -44,6 +44,8 @@ async function bootstrap() {
     metadata,
     projectId,
     features: {
+      email: true,
+      socials:["google"],
       analytics: true, // Optional - defaults to your Cloud configuration
     },
   });
