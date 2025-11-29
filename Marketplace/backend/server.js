@@ -28,9 +28,18 @@ const allowed = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+// acepta localhost y cualquier dominio vercel.app
+const isAllowed = (origin) => {
+  if (!origin) return true;
+  if (allowed.includes(origin)) return true;
+  if (origin.endsWith(".vercel.app")) return true;
+  return false;
+};
+
 app.use(
   cors({
-    origin: (o, cb) => cb(null, !o || allowed.includes(o)),
+    origin: (origin, cb) => cb(null, isAllowed(origin)),
     credentials: true,
   })
 );
