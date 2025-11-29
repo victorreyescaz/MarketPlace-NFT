@@ -2,8 +2,6 @@
 
 DApp en React + Vite que permite conectar tu wallet, mintear, listar, comprar y gestionar NFTs desplegados en la red Sepolia.
 
----
-
 ## 🚀 Stack
 
 - React 19 + Vite
@@ -12,15 +10,25 @@ DApp en React + Vite que permite conectar tu wallet, mintear, listar, comprar y 
 - Reown AppKit (conector de wallets)
 - NFT.storage (vía JWT) para subir metadata/imagenes
 
----
+## 🧱 Estructura
+
+```
+Marketplace/frontend/
+  public/
+    screenshots/
+  src/
+    components/      # UI (layout, botones, formularios)
+    hooks/           # lógica compartida (listings, precio ETH, etc.)
+    services/        # llamadas al backend y utilidades de RPC/IPFS
+    utils/           # helpers de contratos y formatos
+    App.jsx, main.jsx
+```
 
 ## ✅ Prerrequisitos
 
 - Node.js 18+ (`nvm use`)
 - Backend corriendo y accesible (sirve `/api/config/appkit` y `/api/marketplace`)
 - Variables de entorno configuradas (ver abajo)
-
----
 
 ## 🔐 Variables de entorno
 
@@ -42,8 +50,6 @@ VITE_MARKET_DEPLOY_BLOCK=0
 VITE_AUTOLOAD_GLOBAL=true
 ```
 
----
-
 ## 🧭 Scripts
 
 ```bash
@@ -52,8 +58,6 @@ npm run build    # compila para producción
 npm run preview  # sirve la build localmente
 npm run lint     # lint con ESLint
 ```
-
----
 
 ## 🔄 Puesta en marcha (local)
 
@@ -66,22 +70,16 @@ npm run dev
 
 Abre `http://localhost:5173`.
 
----
-
 ## ⚙️ Notas de funcionamiento
 
 - Al cargar, la app pide `projectId` al backend en `/api/config/appkit`. Asegúrate de tener `APPKIT_PROJECT_ID` configurado en el backend.
 - El backend ya gestiona RPC y subida a IPFS, así que no necesitas configurar `VITE_RPC_SEPOLIA` ni `VITE_PINATA_JWT` en el frontend.
-
----
 
 ## 📄 Vistas principales
 
 - **Panel de usuario**: mint + listado opcional, gestión de MisNFTs (listar/cambiar precio/cancelar), proceeds y retirada.
 - **Marketplace global**: NFTs en venta con filtros (texto, rango de precio) y orden por precio o recencia.
 - Navegación pública: se pueden ver listados sin conectar wallet.
-
----
 
 ## 📸 Capturas
 

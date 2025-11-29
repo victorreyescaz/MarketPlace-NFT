@@ -23,6 +23,18 @@ const COINGECKO_ETH_PRICE =
 let cachedEthPrice = null;
 let cachedEthPriceAt = 0;
 
+// Añadir dominios de Vercel a origin
+const allowed = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(
+  cors({
+    origin: (o, cb) => cb(null, !o || allowed.includes(o)),
+    credentials: true,
+  })
+);
+
 // CORS: permite Vite dev server
 app.use(
   cors({
