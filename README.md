@@ -44,13 +44,13 @@ Marketplace/          # paquete raíz
 
 - Marketplace.sol
 
-  ·Crear órdenes de venta, update precio, compra y cancelación.
+  ·Crear órdenes de venta, update precio, compra y cancelación. <br>
   ·Función de withdraw para retirar ganancias.
   <br>
 
 - NFT.sol
 
-  · ERC-721 (NFT) con funciones de mint.
+  · ERC-721 (NFT) con funciones de mint. <br>
   · Control de permisos de minteo (solo owner/marketplace).
 
 ➡️ Más detalles técnicos en [backend Readme](Marketplace/backend/README.md)
